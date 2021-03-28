@@ -19,6 +19,7 @@
     "sideEffects": false,
     "scripts": {},
     "dependencies": {
+        "@asciidoctor/gulp-asciidoctor": "^2.2.5",
         "del": "^6.0.0",
         "glob": "^7.1.6",
         "gulp": "^4.0.2",
