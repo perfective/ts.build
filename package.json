@@ -20,7 +20,8 @@
     "scripts": {},
     "dependencies": {
         "del": "^6.0.0",
-        "gulp": "^4.0.2"
+        "gulp": "^4.0.2",
+        "gulp-typescript": "^6.0.0-alpha.1"
     },
     "devDependencies": {}
 }
