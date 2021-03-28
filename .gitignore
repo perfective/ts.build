@@ -1,0 +1,10 @@
+# Build
+dist
+*.tsbuildinfo
+
+# Dependencies
+node_modules
+
+# Logs
+*.log
+*.out

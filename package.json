@@ -1,0 +1,22 @@
+{
+    "name": "@perfective/build",
+    "version": "0.0.0",
+    "description": "Functions to build TypeScript projects",
+    "keywords": [
+        "es6",
+        "es2015",
+        "typescript",
+        "build",
+        "gulp"
+    ],
+    "author": "Andrey Mikheychik <a.mikheychik@gmail.com>",
+    "homepage": "https://github.com/perfective/ts.build",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/perfective/ts.build.git"
+    },
+    "license": "MIT",
+    "sideEffects": false,
+    "scripts": {},
+    "devDependencies": {}
+}
