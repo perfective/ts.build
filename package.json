@@ -19,6 +19,7 @@
     "sideEffects": false,
     "scripts": {},
     "dependencies": {
+        "del": "^6.0.0",
         "gulp": "^4.0.2"
     },
     "devDependencies": {}
