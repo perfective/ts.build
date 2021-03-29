@@ -6,6 +6,10 @@ function source() {
     return perfective.copy('./src/**/*.js', './dist')();
 }
 
+function tsConfig() {
+    return perfective.copy('./tsconfig/*.json', './dist')();
+}
+
 exports.clean = perfective.clean(['./dist']);
 exports.documentation = perfective.asciidoctor();
 exports.default = gulp.series(
@@ -21,6 +25,7 @@ exports.default = gulp.series(
         module: undefined,
         types: undefined,
     }),
+    tsConfig,
     perfective.copy([
         './LICENSE*',
         './CHANGELOG*',

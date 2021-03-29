@@ -2,6 +2,21 @@
 
 == Building a TypeScript project
 
+. Setup `tsconfig.json` using the base `tsconfig.strict.json` configuration.
++
+[source,json]
+----
+{
+    "extends": "@perfective/build/tsconfig.strict.json",
+    "compilerOptions": {
+        "rootDir": "./src"
+    },
+    "exclude": [
+        "dist"
+    ]
+}
+----
++
 . Add the `RequireExtension` plugin to your `babel.config.js`.
 This plugin replaces `.js` extensions with the `.cjs` extensions in the NodeJS `require()` statements.
 +
