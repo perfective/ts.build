@@ -1,5 +1,20 @@
 = Perfective Build for TypeScript
 
+The `@perfective/build` package provides base configurations
+and presets for tools like Gulp, TypeScript, Babel, etc.
+to reduce code duplication between projects setup.
+
+
+== Installation
+
+[source,shell script]
+----
+npm install --save-dev \
+    @perfective/build \
+    gulp
+----
+
+
 == Building a TypeScript project
 
 . Setup `tsconfig.json` using the base `tsconfig.strict.json` configuration.

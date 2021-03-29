@@ -1,13 +1,15 @@
 {
     "name": "@perfective/build",
-    "version": "0.0.0",
-    "description": "Functions to build TypeScript projects",
+    "version": "0.1.0-alpha",
+    "description": "Configurations and functions to build TypeScript projects",
     "keywords": [
         "es6",
         "es2015",
         "typescript",
+        "tsconfig",
         "build",
-        "gulp"
+        "gulp",
+        "babel"
     ],
     "author": "Andrey Mikheychik <a.mikheychik@gmail.com>",
     "homepage": "https://github.com/perfective/ts.build",

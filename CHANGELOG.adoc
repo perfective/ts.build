@@ -1,1 +1,8 @@
 = Changelog
+
+
+== v0.1.0 (next)
+
+* Added Gulp tasks to build TypeScript projects
+with CommonJS and ES modules support.
+* Published `tsconfig.strict.json`.
