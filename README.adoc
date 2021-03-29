@@ -1,1 +1,18 @@
 = Perfective Build for TypeScript
+
+== Building a TypeScript project
+
+. Add the `RequireExtension` plugin to your `babel.config.js`.
+This plugin replaces `.js` extensions with the `.cjs` extensions in the NodeJS `require()` statements.
++
+[source,javascript]
+----
+const perfective = require('@perfective/build/babel');
+
+module.exports = {
+    presets: [],
+    plugins: [
+        perfective.babelPluginRequireExtension
+    ]
+};
+----

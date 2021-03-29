@@ -17,7 +17,9 @@
     },
     "license": "MIT",
     "sideEffects": false,
-    "scripts": {},
+    "scripts": {
+        "dist": "gulp"
+    },
     "dependencies": {
         "@asciidoctor/gulp-asciidoctor": "^2.2.5",
         "del": "^6.0.0",
