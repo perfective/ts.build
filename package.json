@@ -20,6 +20,9 @@
     "scripts": {
         "dist": "gulp"
     },
+    "peerDependencies": {
+        "gulp": "^4.0.2"
+    },
     "dependencies": {
         "@asciidoctor/gulp-asciidoctor": "^2.2.5",
         "del": "^6.0.0",
