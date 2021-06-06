@@ -99,3 +99,42 @@ dist
 +
 Use `lint:prettier` during development (to fix code automatically)
 and `lint:prettier:build` to verify the build (to fail if code is not formatted).
+
+
+== Setup Jest
+
+. Add `jest` and related peer dependencies as dev dependencies:
++
+[source,json]
+----
+{
+    "deDependencies": {
+        "jest": "^27.0.4",
+        "ts-jest": "^27.0.2"
+    }
+}
+----
++
+. Setup `jest.config.js`:
++
+[source,js]
+----
+const perfective = require('@perfective/build/jest');
+
+module.exports = perfective;
+----
++
+. Update `package.json` scripts:
++
+[source,json]
+----
+{
+    "scripts": {
+        "test": "jest",
+        "test:build": "jest --clearCache && jest --collectCoverage"
+    }
+}
+----
++
+Use `test` for development testing
+and `test:build` to test during the build (and fail if test coverage is not sufficient).

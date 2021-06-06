@@ -28,10 +28,18 @@
     },
     "peerDependencies": {
         "gulp": "^4.0.2",
-        "prettier": "^2.3.1"
+        "jest": "^27.0.4",
+        "prettier": "^2.3.1",
+        "ts-jest": "^27.0.2"
     },
     "peerDependenciesMeta": {
+        "jest": {
+            "optional": true
+        },
         "prettier": {
+            "optional": true
+        },
+        "ts-jest": {
             "optional": true
         }
     },
