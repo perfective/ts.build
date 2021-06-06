@@ -20,7 +20,9 @@
     "license": "MIT",
     "sideEffects": false,
     "scripts": {
-        "dist": "gulp"
+        "dist": "gulp",
+        "lint": "npm run lint:prettier",
+        "lint:prettier": "prettier --write ."
     },
     "peerDependencies": {
         "gulp": "^4.0.2"
@@ -33,7 +35,8 @@
         "gulp-babel": "^8.0.0",
         "gulp-json-editor": "^2.5.5",
         "gulp-rename": "^2.0.0",
-        "gulp-typescript": "^6.0.0-alpha.1"
+        "gulp-typescript": "^6.0.0-alpha.1",
+        "prettier": "^2.3.1"
     },
     "devDependencies": {}
 }

@@ -7,9 +7,7 @@ module.exports = function babelPluginRequireExtension(_babel) {
 };
 
 function commonJsExtension(path) {
-    if (path.get('callee').isIdentifier({ name: 'require' })
-        && path.get('arguments.0').isStringLiteral()
-    ) {
+    if (path.get('callee').isIdentifier({ name: 'require' }) && path.get('arguments.0').isStringLiteral()) {
         cjsExtension(path.container.init.arguments[0]);
     }
 }
@@ -24,6 +22,5 @@ const relativePathPattern = /\.{1,2}\//u;
 const extensionsPattern = /\.([cm]?)js$/u;
 
 function isRelativePath(value) {
-    return value.match(relativePathPattern)
-        && !value.match(extensionsPattern);
+    return value.match(relativePathPattern) && !value.match(extensionsPattern);
 }

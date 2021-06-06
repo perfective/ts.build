@@ -26,10 +26,6 @@ exports.default = gulp.series(
         types: undefined,
     }),
     tsConfig,
-    perfective.copy([
-        './LICENSE*',
-        './CHANGELOG*',
-        './README*',
-    ], './dist'),
+    perfective.copy(['./LICENSE*', './CHANGELOG*', './README*'], './dist'),
     exports.documentation,
 );

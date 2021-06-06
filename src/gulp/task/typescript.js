@@ -35,8 +35,7 @@ exports.tsDeclarations = function tsDeclarationsTask(options = {}) {
             module: 'esnext',
             emitDeclarationOnly: true,
             declaration: true,
-        })
-            .pipe(gulp.dest(options.output));
+        }).pipe(gulp.dest(options.output));
     };
 };
 

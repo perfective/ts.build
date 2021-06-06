@@ -8,8 +8,7 @@ module.exports = function babelPluginImportExtension(_babel) {
 };
 
 function esmModuleExtension(path, state) {
-    if (path.node.source !== null
-        && isEsmModule(state.file.opts.filename)) {
+    if (path.node.source !== null && isEsmModule(state.file.opts.filename)) {
         mjsExtension(path.node.source);
     }
 }
@@ -30,6 +29,5 @@ const relativePathPattern = /\.{1,2}\//u;
 const extensionsPattern = /\.([cm]?)js$/u;
 
 function isRelativePath(value) {
-    return value.match(relativePathPattern)
-        && !value.match(extensionsPattern);
+    return value.match(relativePathPattern) && !value.match(extensionsPattern);
 }

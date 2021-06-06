@@ -9,21 +9,24 @@ exports.packageJson = function packageJsonTask(options) {
     return async function packageJson() {
         options = packageJsonOptions(options);
         const packages = await subPackages(options.output);
-        return gulp.src('./package.json')
-            .pipe(gulpJsonEditor({
-                scripts: undefined,
-                devDependencies: undefined,
-                main: options.main,
-                module: options.module,
-                types: options.types,
-                exports: {
-                    '.': {
-                        import: options.module,
-                        require: options.main,
+        return gulp
+            .src('./package.json')
+            .pipe(
+                gulpJsonEditor({
+                    scripts: undefined,
+                    devDependencies: undefined,
+                    main: options.main,
+                    module: options.module,
+                    types: options.types,
+                    exports: {
+                        '.': {
+                            import: options.module,
+                            require: options.main,
+                        },
+                        ...subPathExports(packages, options),
                     },
-                    ...subPathExports(packages, options),
-                },
-            }))
+                }),
+            )
             .pipe(gulp.dest('dist'));
     };
 };
@@ -45,18 +48,20 @@ async function subPackages(output) {
  */
 function subPathExports(packages, options) {
     return packages
-        .map(name => [`./${name}`, {
-            import: options.module
-                ? options.module.replace(/(?:\.\/)?index/u, `./${name}/index`)
-                : undefined,
-            require: options.main
-                ? options.main.replace(/(?:\.\/)?index/u, `./${name}/index`)
-                : undefined,
-        }])
-        .reduce((exports, [key, value]) => ({
-            ...exports,
-            [key]: value,
-        }), {});
+        .map(name => [
+            `./${name}`,
+            {
+                import: options.module ? options.module.replace(/(?:\.\/)?index/u, `./${name}/index`) : undefined,
+                require: options.main ? options.main.replace(/(?:\.\/)?index/u, `./${name}/index`) : undefined,
+            },
+        ])
+        .reduce(
+            (exports, [key, value]) => ({
+                ...exports,
+                [key]: value,
+            }),
+            {},
+        );
 }
 
 exports.subPackageJson = function subPackageJsonTask(packageName, options) {
@@ -65,16 +70,18 @@ exports.subPackageJson = function subPackageJsonTask(packageName, options) {
         return gulp
             .src(`${options.output}/*/index.js`)
             .pipe(gulpSubPackageJson(packageName))
-            .pipe(gulpJsonEditor({
-                main: options.main,
-                module: options.module,
-                types: options.types,
-                exports: {
-                    import: options.module,
-                    require: options.main,
-                },
-                sideEffects: false,
-            }))
+            .pipe(
+                gulpJsonEditor({
+                    main: options.main,
+                    module: options.module,
+                    types: options.types,
+                    exports: {
+                        import: options.module,
+                        require: options.main,
+                    },
+                    sideEffects: false,
+                }),
+            )
             .pipe(gulp.dest(options.output));
     };
 };
@@ -93,9 +100,12 @@ function gulpSubPackageJson(packageName) {
     const gulpStream = new stream.Transform({ objectMode: true });
     gulpStream._transform = (vinyl, encoding, callback) => {
         vinyl.path = subPackageJsonPath(vinyl.path);
-        vinyl.contents = Buffer.from(JSON.stringify({
-            name: `${packageName}/${subPackageName(vinyl.path)}`,
-        }), encoding);
+        vinyl.contents = Buffer.from(
+            JSON.stringify({
+                name: `${packageName}/${subPackageName(vinyl.path)}`,
+            }),
+            encoding,
+        );
         callback(null, vinyl);
     };
     return gulpStream;

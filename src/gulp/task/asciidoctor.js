@@ -6,12 +6,15 @@ const gulpRename = require('gulp-rename');
 module.exports = function asciidoctorTask(options = {}) {
     return function documentation() {
         options = asciidoctorOptions(options);
-        return gulp.src(options.source)
+        return gulp
+            .src(options.source)
             .pipe(gulpAsciidoctor())
-            .pipe(gulpRename(path => {
-                path.basename = options.name;
-                return path;
-            }))
+            .pipe(
+                gulpRename(path => {
+                    path.basename = options.name;
+                    return path;
+                }),
+            )
             .pipe(gulp.dest(options.output));
     };
 };
