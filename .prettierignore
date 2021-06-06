@@ -1,11 +1,2 @@
-# Auto-generated
+# Build
 dist
-*.tsbuildinfo
-package-lock.json
-
-# Dependencies
-node_modules
-
-# Logs
-*.log
-*.out

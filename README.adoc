@@ -46,3 +46,56 @@ module.exports = {
     ]
 };
 ----
+
+
+== Setup Prettier
+
+. Add `prettier` as a dev dependency:
++
+[source,json]
+----
+{
+    "devDependencies": {
+        "prettier": "^2.3.1"
+    }
+}
+----
++
+. Setup `.prettierrc.js`:
++
+[source,js]
+----
+const perfective = require('@perfective/build/prettier');
+
+module.exports = perfective;
+----
++
+. Setup `.prettierignore`:
++
+[source,ignore]
+----
+# Build
+dist
+
+# ESLint
+*.js
+*.jsx
+*.ts
+*.tsx
+----
++
+. Update `package.json` scripts.
++
+[source,json]
+----
+{
+    "scripts": {
+        "lint": "npm run lint:prettier",
+        "lint:prettier": "prettier --write .",
+        "lint:prettier:build": "prettier --check ."
+    }
+}
+----
++
+Use `lint:prettier` during development (to fix code automatically)
+and `lint:prettier:build` to verify the build (to fail if code is not formatted).
