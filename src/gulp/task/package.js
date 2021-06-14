@@ -30,7 +30,7 @@ exports.packageJson = function packageJsonTask(options) {
                     output: undefined,
                 }),
             )
-            .pipe(gulp.dest('dist'));
+            .pipe(gulp.dest(options.output));
     };
 };
 
