@@ -13,6 +13,7 @@ exports.packageJson = function packageJsonTask(options) {
             .src('./package.json')
             .pipe(
                 gulpJsonEditor({
+                    ...options,
                     scripts: undefined,
                     devDependencies: undefined,
                     main: options.main,
@@ -72,6 +73,7 @@ exports.subPackageJson = function subPackageJsonTask(packageName, options) {
             .pipe(gulpSubPackageJson(packageName))
             .pipe(
                 gulpJsonEditor({
+                    ...options,
                     main: options.main,
                     module: options.module,
                     types: options.types,
