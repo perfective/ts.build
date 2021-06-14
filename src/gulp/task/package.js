@@ -26,6 +26,8 @@ exports.packageJson = function packageJsonTask(options) {
                         },
                         ...subPathExports(packages, options),
                     },
+                    // Remove options.output as a custom option
+                    output: undefined,
                 }),
             )
             .pipe(gulp.dest('dist'));
@@ -82,6 +84,8 @@ exports.subPackageJson = function subPackageJsonTask(packageName, options) {
                         require: options.main,
                     },
                     sideEffects: false,
+                    // Remove options.output as a custom option
+                    output: undefined,
                 }),
             )
             .pipe(gulp.dest(options.output));
