@@ -40,8 +40,10 @@ exports.tsDeclarations = function tsDeclarationsTask(options = {}) {
 };
 
 exports.tsBuild = function tsBuildTask(options = {}) {
-    options = typeScriptOptions(options);
-    return typeScriptConfig(options.config).pipe(gulp.dest(options.output));
+    return function tsBuild() {
+        options = typeScriptOptions(options);
+        return typeScriptConfig(options.config).pipe(gulp.dest(options.output));
+    };
 };
 
 function typeScriptConfig(config, settings = {}) {
