@@ -39,6 +39,11 @@ exports.tsDeclarations = function tsDeclarationsTask(options = {}) {
     };
 };
 
+exports.tsBuild = function tsBuildTask(options = {}) {
+    options = typeScriptOptions(options);
+    return typeScriptConfig(options.config).pipe(gulp.dest(options.output));
+};
+
 function typeScriptConfig(config, settings = {}) {
     const project = gulpTypeScript.createProject(config, settings);
     return project.src().pipe(project());
