@@ -6,3 +6,5 @@
 * Added Gulp tasks to build TypeScript projects
 with CommonJS and ES modules support.
 * Published `tsconfig.strict.json`.
+* Published `@perfective/build/prettier` configuration.
+* Published `@perfective/build/jest` configuration.

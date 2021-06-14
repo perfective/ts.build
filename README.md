@@ -9,3 +9,5 @@ npm install --save-dev \
   @perfective/build \
   gulp
 ```
+
+Read full https://github.com/perfective/ts.build[documentation] in the repository.
