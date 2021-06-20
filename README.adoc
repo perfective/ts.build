@@ -11,12 +11,25 @@ to reduce code duplication between projects setup.
 ----
 npm install --save-dev \
     @perfective/build \
-    gulp
+    gulp \
+    typescript
 ----
 
 
 == Building a TypeScript project
 
+. Check that `devDependencies` contain correct versions of `gulp` and `typescript`:
++
+[source,json]
+----
+{
+    "devDependencies": {
+        "gulp": "^4.0.2",
+        "typescript": "^4.3.4"
+    }
+}
+----
++
 . Setup `tsconfig.json` using the base `tsconfig.strict.json` configuration.
 +
 [source,json]
