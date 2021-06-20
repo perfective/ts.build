@@ -1,7 +1,7 @@
 = Changelog
 
 
-== v0.1.0 (next)
+== v0.1.0
 
 * Added Gulp tasks to build TypeScript projects
 with CommonJS and ES modules support.

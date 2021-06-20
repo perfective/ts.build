@@ -1,6 +1,6 @@
 {
     "name": "@perfective/build",
-    "version": "0.1.0-beta.3",
+    "version": "0.1.0",
     "description": "Configurations and functions to build TypeScript projects",
     "keywords": [
         "es2015",
@@ -8,6 +8,7 @@
         "babel",
         "build",
         "gulp",
+        "jest",
         "prettier",
         "tsconfig",
         "typescript"
