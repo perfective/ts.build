@@ -11,4 +11,4 @@ npm install --save-dev \
   typescript
 ```
 
-Read full https://github.com/perfective/ts.build[documentation] in the repository.
+Read [full documentation](https://github.com/perfective/ts.build) in the repository.
