@@ -1,5 +1,9 @@
 = Changelog
 
+== v0.1.1
+
+* Allow manual overrides in the result `package.json` in `packageJson()` build task.
+
 
 == v0.1.0
 
