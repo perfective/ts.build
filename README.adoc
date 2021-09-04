@@ -18,7 +18,7 @@ npm install --save-dev \
 
 == Building a TypeScript project
 
-. Check that `devDependencies` contain correct versions of `gulp` and `typescript`:
+. Check that dev dependencies include correct versions of `gulp` and `typescript`:
 +
 [source,json]
 ----
@@ -59,6 +59,14 @@ module.exports = {
     ]
 };
 ----
++
+[NOTE]
+====
+There is also available the `babelPluginImportExtension` plugin.
+It replaces `.js` extensions with `.mjs`,
+but on practice it is not needed:
+you only need `.cjs` for CommonJS and keep `.js` for ESM modules.
+====
 
 
 == Setup Prettier
@@ -69,7 +77,7 @@ module.exports = {
 ----
 {
     "devDependencies": {
-        "prettier": "^2.3.1"
+        "prettier": "^2.3.2"
     }
 }
 ----
@@ -122,8 +130,8 @@ and `lint:prettier:build` to verify the build (to fail if code is not formatted)
 ----
 {
     "deDependencies": {
-        "jest": "^27.0.4",
-        "ts-jest": "^27.0.2"
+        "jest": "^27.1.0",
+        "ts-jest": "^27.0.5"
     }
 }
 ----
