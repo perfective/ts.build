@@ -5,6 +5,7 @@
 * Updated `typescript` to `4.4.3`:
 ** Enabled the `exactOptionalPropertyTypes` option;
 ** Enabled the `useUnknownInCatchVariables` option.
+* Updated `jest` to `27.2.0`.
 
 
 == v0.1.2
