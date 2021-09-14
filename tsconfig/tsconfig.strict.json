@@ -14,6 +14,7 @@
         "declarationMap": true,
         "downlevelIteration": true,
         "esModuleInterop": true,
+        "exactOptionalPropertyTypes": true,
         "experimentalDecorators": true,
         "forceConsistentCasingInFileNames": true,
         "incremental": true,
@@ -46,6 +47,7 @@
         "strictPropertyInitialization": true,
         "suppressExcessPropertyErrors": false,
         "suppressImplicitAnyIndexErrors": false,
-        "target": "es2015"
+        "target": "es2015",
+        "useUnknownInCatchVariables": true
     }
 }
