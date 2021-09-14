@@ -6,6 +6,7 @@
 ** Enabled the `exactOptionalPropertyTypes` option;
 ** Enabled the `useUnknownInCatchVariables` option.
 * Updated `jest` to `27.2.0`.
+* Updated `prettier` to `2.4.0`.
 
 
 == v0.1.2

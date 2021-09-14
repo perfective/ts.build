@@ -1,10 +1,10 @@
 module.exports = {
     arrowParens: 'avoid',
+    bracketSameLine: true,
     bracketSpacing: true,
     embeddedLanguageFormatting: 'auto',
     endOfLine: 'lf',
     htmlWhitespaceSensitivity: 'strict',
-    jsxBracketSameLine: true,
     jsxSingleQuote: false,
     printWidth: 120,
     proseWrap: 'preserve',
