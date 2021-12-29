@@ -2,11 +2,12 @@
 
 == v0.2.0 (next)
 
-* Updated `typescript` to `4.4.3`:
+* Updated `typescript` to `4.4.4`:
 ** Enabled the `exactOptionalPropertyTypes` option;
 ** Enabled the `useUnknownInCatchVariables` option.
-* Updated `jest` to `27.2.4`.
-* Updated `prettier` to `2.4.1`.
+* Updated `jest` to `27.4.5`.
+* Updated `prettier` to `2.5.1`.
+* Updated `ts-jest` to `27.1.2`.
 
 
 == v0.1.2

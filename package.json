@@ -1,6 +1,6 @@
 {
     "name": "@perfective/build",
-    "version": "0.2.0-alpha.1",
+    "version": "0.2.0-beta",
     "description": "Configurations and functions to build TypeScript projects",
     "keywords": [
         "es2015",
