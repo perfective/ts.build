@@ -1,5 +1,10 @@
 = Changelog
 
+== v0.3.0-alpha
+
+* Updated `typescript` to `4.5.4`.
+
+
 == v0.2.0
 
 * Updated `typescript` to `4.4.4`:
