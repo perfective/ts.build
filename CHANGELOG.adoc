@@ -1,6 +1,6 @@
 = Changelog
 
-== v0.3.0-beta
+== v0.3.0
 
 * Updated `typescript` to `4.5.5`;
 * Updated `jest` to `27.5.1`;
