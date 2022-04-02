@@ -1,8 +1,10 @@
 = Changelog
 
-== v0.3.0-alpha.1
+== v0.3.0-beta
 
-* Updated `typescript` to `4.5.5`.
+* Updated `typescript` to `4.5.5`;
+* Updated `jest` to `27.5.1`;
+* Bumped `ts-jest` to `27.1.4`.
 
 
 == v0.2.0
