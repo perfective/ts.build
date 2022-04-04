@@ -12,6 +12,7 @@ module.exports = {
     quoteProps: 'consistent',
     requirePragma: false,
     semi: true,
+    singleAttributePerLine: true,
     singleQuote: true,
     tabWidth: 4,
     trailingComma: 'all',
