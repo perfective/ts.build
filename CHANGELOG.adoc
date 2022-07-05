@@ -1,13 +1,15 @@
 = Changelog
 
-== v0.4.0-alpha (next)
+== v0.4.0-beta (next)
 
-* Updated `typescript` to `4.6.3`:
+* Updated `typescript` to `4.6.4`:
 ** Enabled `link:https://www.typescriptlang.org/tsconfig#noImplicitOverride[noImplicitOverride]`;
 ** Enabled `link:https://www.typescriptlang.org/tsconfig#noPropertyAccessFromIndexSignature[noPropertyAccessFromIndexSignature]`.
 +
 * Updated `prettier` to `2.6.2`:
 ** Enabled the `link:https://prettier.io/docs/en/options.html#single-attribute-per-line[singleAttributePerLine]` option.
++
+* Bumped `ts-jest` to `27.1.5`.
 
 
 == v0.3.0
