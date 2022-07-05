@@ -77,7 +77,7 @@ you only need `.cjs` for CommonJS and keep `.js` for ESM modules.
 ----
 {
     "devDependencies": {
-        "prettier": "^2.6.2"
+        "prettier": "^2.7.1"
     }
 }
 ----
@@ -130,8 +130,9 @@ and `lint:prettier:build` to verify the build (to fail if code is not formatted)
 ----
 {
     "deDependencies": {
-        "jest": "^27.5.1",
-        "ts-jest": "^27.1.5"
+        "@types/jest": "28.1.4",
+        "jest": "^28.1.2",
+        "ts-jest": "^28.0.5"
     }
 }
 ----
