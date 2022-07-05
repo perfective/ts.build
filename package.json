@@ -47,7 +47,7 @@
     },
     "dependencies": {
         "@asciidoctor/gulp-asciidoctor": "^2.2.5",
-        "del": "^6.0.0",
+        "del": "^6.1.1",
         "glob": "^7.2.0",
         "gulp": "^4.0.2",
         "gulp-babel": "^8.0.0",
