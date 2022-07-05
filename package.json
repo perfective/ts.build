@@ -28,7 +28,7 @@
         "lint:prettier:build": "prettier --check ."
     },
     "peerDependencies": {
-        "@types/jest": "^28.1.4",
+        "@types/jest": "28.1.1",
         "gulp": "^4.0.2",
         "jest": "^28.1.2",
         "prettier": "^2.7.1",
