@@ -28,13 +28,17 @@
         "lint:prettier:build": "prettier --check ."
     },
     "peerDependencies": {
+        "@types/jest": "^28.1.4",
         "gulp": "^4.0.2",
-        "jest": "^27.5.1",
+        "jest": "^28.1.2",
         "prettier": "^2.7.1",
-        "ts-jest": "^27.1.5",
+        "ts-jest": "^28.0.5",
         "typescript": "~4.6.4"
     },
     "peerDependenciesMeta": {
+        "@types/jest": {
+            "optional": true
+        },
         "jest": {
             "optional": true
         },
