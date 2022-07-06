@@ -1,6 +1,6 @@
 = Changelog
 
-== v0.4.0-beta.1 (next)
+== v0.4.0-beta.2 (next)
 
 * Updated `typescript` to `4.6.4`:
 ** Enabled `link:https://www.typescriptlang.org/tsconfig#noImplicitOverride[noImplicitOverride]`;
