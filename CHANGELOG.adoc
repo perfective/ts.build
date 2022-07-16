@@ -1,5 +1,15 @@
 = Changelog
 
+== v0.4.1
+
+* Added support for type definition files `.d.ts` for subpackages.
+** See TypeScript 4.7 announcement
+link:https://devblogs.microsoft.com/typescript/announcing-typescript-4-7/#package-json-exports-imports-and-self-referencing[`package.json` exports, imports, and self-referencing].
++
+* Patched `jest` to `28.1.3`.
+* Patched `ts-jest` to `28.0.6`.
+* Patched `@types/jest` to `28.1.6`.
+
 == v0.4.0
 
 * Updated `typescript` to `4.6.4`:
