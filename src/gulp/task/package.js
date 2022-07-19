@@ -22,9 +22,9 @@ exports.packageJson = function packageJsonTask(options, overrides) {
                     types: options.types,
                     exports: {
                         '.': {
+                            types: options.types,
                             import: options.module,
                             require: options.main,
-                            types: options.types,
                         },
                         ...subPathExports(packages, options),
                     },
@@ -58,9 +58,9 @@ function subPathExports(packages, options) {
         .map(name => [
             `./${name}`,
             {
+                types: options.types ? options.types.replace(/(?:\.\/)?index/u, `./${name}/index`) : undefined,
                 import: options.module ? options.module.replace(/(?:\.\/)?index/u, `./${name}/index`) : undefined,
                 require: options.main ? options.main.replace(/(?:\.\/)?index/u, `./${name}/index`) : undefined,
-                types: options.types ? options.types.replace(/(?:\.\/)?index/u, `./${name}/index`) : undefined,
             },
         ])
         .reduce(
@@ -85,9 +85,9 @@ exports.subPackageJson = function subPackageJsonTask(packageName, options) {
                     module: options.module,
                     types: options.types,
                     exports: {
+                        types: options.types,
                         import: options.module,
                         require: options.main,
-                        types: options.types,
                     },
                     sideEffects: false,
                     // Remove options.output as a custom option
