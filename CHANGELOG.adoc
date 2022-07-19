@@ -1,5 +1,13 @@
 = Changelog
 
+== v0.4.2
+
+* Fixed `"types"` order:
+https://devblogs.microsoft.com/typescript/announcing-typescript-4-7/#package-json-exports-imports-and-self-referencing[`"types"` condition must be first in `"exports"`].
++
+* Patched `ts-jest` to `28.0.7`.
+
+
 == v0.4.1
 
 * Added support for type definition files `.d.ts` for subpackages.
@@ -9,6 +17,7 @@ link:https://devblogs.microsoft.com/typescript/announcing-typescript-4-7/#packag
 * Patched `jest` to `28.1.3`.
 * Patched `ts-jest` to `28.0.6`.
 * Patched `@types/jest` to `28.1.6`.
+
 
 == v0.4.0
 
