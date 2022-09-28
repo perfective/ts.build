@@ -25,7 +25,7 @@ npm install --save-dev \
 {
     "devDependencies": {
         "gulp": "^4.0.2",
-        "typescript": "~4.6.4"
+        "typescript": "~4.7.4"
     }
 }
 ----
@@ -130,9 +130,9 @@ and `lint:prettier:build` to verify the build (to fail if code is not formatted)
 ----
 {
     "deDependencies": {
-        "@types/jest": "28.1.1",
-        "jest": "^28.1.2",
-        "ts-jest": "^28.0.5"
+        "@types/jest": "28.1.8",
+        "jest": "^28.1.3",
+        "ts-jest": "^28.0.8"
     }
 }
 ----
