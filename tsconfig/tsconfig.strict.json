@@ -21,6 +21,7 @@
         "incremental": true,
         "keyofStringsOnly": true,
         "module": "commonjs",
+        "moduleDetection": "auto",
         "moduleResolution": "node",
         "newLine": "lf",
         "noEmitOnError": true,
