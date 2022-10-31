@@ -1,6 +1,6 @@
 = Changelog
 
-== v0.5.0-alpha (next)
+== v0.5.0-beta (next)
 
 * Updated `typescript` to `4.7.4`:
 ** Added `link:https://www.typescriptlang.org/tsconfig#moduleDetection[moduleDetection]` as `auto` (default).
