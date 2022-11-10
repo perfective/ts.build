@@ -3,11 +3,6 @@ module.exports = {
     testEnvironment: 'node',
     // Prevent "jest-haste-map: Haste module naming collision" issue when package.json is copied into ./dist
     rootDir: './src',
-    globals: {
-        'ts-jest': {
-            tsconfig: './tsconfig.json',
-        },
-    },
     collectCoverage: false,
     coverageReporters: ['text'],
     coverageThreshold: {
@@ -20,5 +15,13 @@ module.exports = {
     },
     errorOnDeprecated: true,
     testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+    transform: {
+        '^.+\\.tsx?$': [
+            'ts-jest',
+            {
+                tsconfig: './tsconfig.json',
+            },
+        ],
+    },
     verbose: false,
 };
