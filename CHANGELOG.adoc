@@ -1,6 +1,6 @@
 = Changelog
 
-== v0.6.0-alpha (next)
+== v0.6.0-alpha.1 (next)
 
 * Updated `typescript` to `link:https://devblogs.microsoft.com/typescript/announcing-typescript-4-8/[4.8.4]`.
 * Upgraded `jest` to `29.3.1`.
