@@ -1,8 +1,9 @@
 = Changelog
 
-== v0.7.0-alpha (next)
+== v0.7.0-beta (next)
 
 * Updated `typescript` to `link:https://devblogs.microsoft.com/typescript/announcing-typescript-4-9/[4.9.4]`.
+* Fixed `@types/jest` version to allow minor and patch updates.
 
 
 == v0.6.0
