@@ -33,6 +33,7 @@ exports.tsDeclarations = function tsDeclarationsTask(options = {}) {
         options = typeScriptOptions(options);
         return typeScriptConfig(options.config, {
             module: 'esnext',
+            removeComments: false,
             emitDeclarationOnly: true,
             declaration: true,
         }).pipe(gulp.dest(options.output));
