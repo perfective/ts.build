@@ -1,5 +1,10 @@
 = Changelog
 
+== v0.6.2
+
+* Updated `@perfective/build/gulp` `typescript.tsDeclarations()` function to keep comments in the declaration files.
+
+
 == v0.6.1
 
 * Fixed `@types/jest` version to allow minor and patch updates.
