@@ -1,10 +1,11 @@
 = Changelog
 
-== v0.7.0-beta.1 (next)
+== v0.7.0-beta.2 (next)
 
 * Updated `typescript` to `link:https://devblogs.microsoft.com/typescript/announcing-typescript-4-9/[4.9.4]`.
 * Fixed `@types/jest` version to allow minor and patch updates.
 * Updated `@perfective/build/gulp` `typescript.tsDeclarations()` function to keep comments in the declaration files.
+* Patched `prettier` to `2.8.2`.
 
 
 == v0.6.0
