@@ -1,5 +1,11 @@
 = Changelog
 
+== v0.7.1
+
+* Patched `typescript` to `4.9.5`.
+* Updated `jest` to `29.4.1`.
+
+
 == v0.7.0
 
 * Updated `typescript` to `link:https://devblogs.microsoft.com/typescript/announcing-typescript-4-9/[4.9.4]`.
