@@ -1,5 +1,10 @@
 = Changelog
 
+== v0.7.4
+
+* Updated `jest` to `29.5.0`.
+
+
 == v0.7.3
 
 * Patched `jest` to `29.4.3`.
