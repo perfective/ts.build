@@ -60,7 +60,7 @@
         "gulp-typescript": "^6.0.0-alpha.1"
     },
     "devDependencies": {
-        "prettier": "~2.8.4",
+        "prettier": "~2.8.7",
         "typescript": "~5.0.2"
     }
 }
