@@ -1,6 +1,15 @@
 = Changelog
 
-== v0.8.0-alpha (next)
+== v0.8.0-alpha.1 (next)
+
+* Fixed compilation `Error TS6053: File '@perfective/build/tsconfig.strict.json' not found`.
+* Removed https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/#deprecations-and-default-changes[deprecated configurations options]
+from `tsconfig.strict.json`.
+* Added support to pass an explicit `exports` list to the `packageJson()` Gulp task.
+* Patched `typescript` to `5.0.3`.
+
+
+== v0.8.0-alpha
 
 * Upgraded `typescript` to `5.0.2`.
 * Patched `prettier` to `2.8.7`.
