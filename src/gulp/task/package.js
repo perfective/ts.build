@@ -5,10 +5,11 @@ const glob = require('glob');
 const gulp = require('gulp');
 const gulpJsonEditor = require('gulp-json-editor');
 
-exports.packageJson = function packageJsonTask(options, overrides) {
+exports.packageJson = function packageJsonTask(options, overrides, exports) {
     return async function packageJson() {
         options = packageJsonOptions(options);
         overrides = overrides ?? {};
+        exports = exports ?? {};
         const packages = await subPackages(options.output);
         return gulp
             .src('./package.json')
@@ -27,6 +28,8 @@ exports.packageJson = function packageJsonTask(options, overrides) {
                             require: options.main,
                         },
                         ...subPathExports(packages, options),
+                        // Manually set exports
+                        ...exports,
                     },
                     // Remove options.output as a custom option
                     output: undefined,
