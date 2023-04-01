@@ -20,11 +20,19 @@ exports.default = gulp.series(
         module: undefined,
         types: undefined,
     }),
-    perfective.packageJson.packageJson({
-        main: './index.js',
-        module: undefined,
-        types: undefined,
-    }),
+    perfective.packageJson.packageJson(
+        {
+            main: './index.js',
+            module: undefined,
+            types: undefined,
+        },
+        {},
+        {
+            './tsconfig.strict.json': {
+                require: './tsconfig.strict.json',
+            },
+        },
+    ),
     tsConfig,
     perfective.copy(['./LICENSE*', './CHANGELOG*', './README*'], './dist'),
     exports.documentation,
