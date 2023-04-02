@@ -1,6 +1,11 @@
 = Changelog
 
-== v0.8.0-alpha.1 (next)
+== v0.8.0-beta (next)
+
+* Updated `ts-jest` to `29.1.0`.
+
+
+== v0.8.0-alpha.1
 
 * Fixed compilation `Error TS6053: File '@perfective/build/tsconfig.strict.json' not found`.
 * Removed https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/#deprecations-and-default-changes[deprecated configurations options]
