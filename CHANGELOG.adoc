@@ -1,6 +1,12 @@
 = Changelog
 
-== v0.8.0-beta (next)
+== v0.8.0-beta.1 (next)
+
+* Patch `typescript` to `5.0.4`.
+* Explicitly specify non-project compiler options in the `tsconfig.strict.json`.
+
+
+== v0.8.0-beta
 
 * Updated `ts-jest` to `29.1.0`.
 
