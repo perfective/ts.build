@@ -36,7 +36,7 @@
         "moduleResolution": "node",
         "newLine": "lf",
         "noEmit": false,
-        "noEmitHelpers": true,
+        "noEmitHelpers": false,
         "noEmitOnError": true,
         "noErrorTruncation": true,
         "noFallthroughCasesInSwitch": true,
