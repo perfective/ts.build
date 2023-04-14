@@ -1,9 +1,24 @@
 = Changelog
 
-== v0.8.0-beta.1 (next)
+== v0.8.0
 
-* Patch `typescript` to `5.0.4`.
-* Explicitly specify non-project compiler options in the `tsconfig.strict.json`.
+* Upgraded `typescript` to `5.0.4`.
+** Fixed compilation `Error TS6053: File '@perfective/build/tsconfig.strict.json' not found`.
+** Removed https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/#deprecations-and-default-changes[deprecated configurations options]
+from `tsconfig.strict.json`.
+** Explicitly specified non-project compiler options in the `tsconfig.strict.json`.
++
+* Added support to pass an explicit `exports` list to the `packageJson()` Gulp task.
++
+* Updated `ts-jest` to `29.1.0`.
+* Patched `prettier` to `2.8.7`.
+* Overrode `glob-parent` dependency to `5.1.2`.
+
+
+== v0.8.0-beta.1
+
+* Patched `typescript` to `5.0.4`.
+* Explicitly specified non-project compiler options in the `tsconfig.strict.json`.
 
 
 == v0.8.0-beta
