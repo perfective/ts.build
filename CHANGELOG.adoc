@@ -1,5 +1,12 @@
 = Changelog
 
+== v0.8.2
+
+* Updated `jest` to `29.6.2`.
+** Patched `@types/jest` to `29.6.3`.
+** Patches `ts-jest` to`29.1.1`.
+
+
 == v0.8.1
 
 * Patched `prettier` to `2.8.8`.
