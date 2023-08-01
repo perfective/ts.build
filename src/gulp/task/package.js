@@ -1,7 +1,7 @@
 const path = require('path');
 const stream = require('stream');
 
-const glob = require('glob');
+const { glob } = require('glob');
 const gulp = require('gulp');
 const gulpJsonEditor = require('gulp-json-editor');
 
@@ -42,15 +42,7 @@ exports.packageJson = function packageJsonTask(options, overrides, exports) {
 };
 
 async function subPackages(output) {
-    return new Promise((resolve, reject) => {
-        glob(`${output}/*/package.json`, {}, (error, files) => {
-            if (error) {
-                reject(error);
-            } else {
-                resolve(files.map(subPackageName));
-            }
-        });
-    });
+    return glob(`${output}/*/package.json`).then(files => files.map(subPackageName));
 }
 
 /**

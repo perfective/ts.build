@@ -52,7 +52,7 @@
     "dependencies": {
         "@asciidoctor/gulp-asciidoctor": "^2.2.5",
         "del": "^6.1.1",
-        "glob": "^8.1.0",
+        "glob": "^10.3.3",
         "gulp": "^4.0.2",
         "gulp-babel": "^8.0.0",
         "gulp-json-editor": "^2.5.7",
