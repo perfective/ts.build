@@ -24,6 +24,7 @@
     "scripts": {
         "dist": "gulp",
         "lint": "npm run lint:prettier",
+        "lint:build": "npm run lint:prettier:build",
         "lint:prettier": "prettier --write .",
         "lint:prettier:build": "prettier --check ."
     },
