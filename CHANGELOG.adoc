@@ -1,6 +1,11 @@
 = Changelog
 
-== v0.9.0-alpha (next)
+== v0.9.0-beta (next)
+
+* Patched `prettier` to `3.0.1`.
+
+
+== v0.9.0-alpha
 
 * Updated `typescript` to `5.1.6`.
 * Upgraded `prettier` to `3.0.0`.
