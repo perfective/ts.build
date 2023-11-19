@@ -1,8 +1,15 @@
 = Changelog
 
-== v0.10.0-beta.1 (next)
+== v0.10.0-rc (next)
+
+* Patched `@types/jest` to `29.5.8`
+* Patched `glob` to `10.3.10`
+
+
+== v0.10.0-beta.1
 
 * [Internal] Fixed GitHub Actions
+
 
 == v0.10.0-beta
 
@@ -17,7 +24,7 @@
 * Patched `prettier` to `3.0.3`.
 
 
-== v0.9.0
+== v0.9.0 (latest)
 
 * Updated `typescript` to `5.1.6`.
 * Upgraded `prettier` to `3.0.1`.
