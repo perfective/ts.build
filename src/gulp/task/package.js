@@ -16,7 +16,7 @@ exports.packageJson = function packageJsonTask(options, overrides, exports) {
             .pipe(
                 gulpJsonEditor({
                     ...options,
-                    scripts: undefined,
+                    scripts: {},
                     devDependencies: undefined,
                     main: options.main,
                     module: options.module,
