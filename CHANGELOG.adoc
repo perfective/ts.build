@@ -1,6 +1,10 @@
 = Changelog
 
-== v0.10.0-beta (next)
+== v0.10.0-beta.1 (next)
+
+* [Internal] Fixed GitHub Actions
+
+== v0.10.0-beta
 
 * Updated `jest` to `29.7.0`.
 * Updated `prettier` to `3.1.0`.
