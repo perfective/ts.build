@@ -25,6 +25,6 @@ jobs:
               run: npm run dist
 
             - name: Publish package
-              run: npm publish --tag next
+              run: npm publish --tag next ./dist
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
