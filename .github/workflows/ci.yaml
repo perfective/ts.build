@@ -10,6 +10,7 @@ on:
 
 jobs:
     build:
+        name: Build
         runs-on: ubuntu-latest
 
         strategy:
@@ -17,7 +18,8 @@ jobs:
                 node-version: [18.x, 20.x]
 
         steps:
-            - uses: actions/checkout@v4
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
             - name: Setup Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v3
