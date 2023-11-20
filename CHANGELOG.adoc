@@ -1,5 +1,10 @@
 = Changelog
 
+== v0.10.1
+
+* Ensured `scripts` property is empty in the output `package.json`.
+
+
 == v0.10.0
 
 Changes since v0.9.0:
