@@ -16,7 +16,8 @@ exports.packageJson = function packageJsonTask(options, overrides, exports) {
             .pipe(
                 gulpJsonEditor({
                     ...options,
-                    scripts: {},
+                    // Remove "scripts" property from the package.json
+                    scripts: undefined,
                     devDependencies: undefined,
                     main: options.main,
                     module: options.module,
@@ -35,6 +36,14 @@ exports.packageJson = function packageJsonTask(options, overrides, exports) {
                     output: undefined,
                     // Manual overrides
                     ...overrides,
+                }),
+            )
+            .pipe(
+                gulpJsonEditor({
+                    // Add "scripts" back to the package.json to avoid an NPM warning.
+                    // In order for scripts to be empty, it has to be removed first.
+                    // Otherwise, gulpJsonEditor uses deep merge and "scripts" property remains as is.
+                    scripts: {},
                 }),
             )
             .pipe(gulp.dest(options.output));
