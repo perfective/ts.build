@@ -1,5 +1,11 @@
 = Changelog
 
+== v0.11.0
+
+* Updated `typescript` to `5.3.2`.
+* Patched `@types/jest` to `29.5.10`.
+
+
 == v0.10.1
 
 * Ensured `scripts` property is empty in the output `package.json`.
