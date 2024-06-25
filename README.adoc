@@ -24,8 +24,8 @@ npm install --save-dev \
 ----
 {
     "devDependencies": {
-        "gulp": "^4.0.2",
-        "typescript": "~5.4.5"
+        "gulp": "^5.0.0",
+        "typescript": "~5.5.2"
     }
 }
 ----
