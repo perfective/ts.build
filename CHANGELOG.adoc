@@ -1,5 +1,11 @@
 = Changelog
 
+== v0.13.1
+
+* Patched `typescript` to `5.5.4`.
+* Patched `prettier` to `3.3.3`.
+
+
 == v0.13.0
 
 * Updated `typescript` to `5.5.2`.
