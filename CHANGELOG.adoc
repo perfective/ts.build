@@ -1,5 +1,10 @@
 = Changelog
 
+== v0.14.0
+
+* Updated `typescript` to `5.6.3`.
+
+
 == v0.13.1
 
 * Patched `typescript` to `5.5.4`.
