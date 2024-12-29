@@ -77,7 +77,7 @@ you only need `.cjs` for CommonJS and keep `.js` for ESM modules.
 ----
 {
     "devDependencies": {
-        "prettier": "^3.4.1"
+        "prettier": "^3.4.2"
     }
 }
 ----
