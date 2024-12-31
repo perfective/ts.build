@@ -1,7 +1,7 @@
-import del from 'del';
+import { deleteAsync } from 'del';
 
 export default function cleanTask(patterns, options) {
     return function clean() {
-        return del(patterns, options);
+        return deleteAsync(patterns, options);
     };
 }
