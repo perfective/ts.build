@@ -16,7 +16,10 @@ export default gulp.series(
     clean,
     source,
     perfective.packageJson.subPackageJson('@perfective/build', {
+        type: 'module',
+        // For NodeJs (https://nodejs.org/api/packages.html#main)
         main: './index.js',
+        // For bundlers (see https://esbuild.github.io/api/#main-fields)
         module: './index.js',
         types: undefined,
     }),
