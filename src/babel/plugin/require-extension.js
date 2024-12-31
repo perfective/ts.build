@@ -1,4 +1,4 @@
-export default function babelPluginRequireExtension(_babel) {
+export function babelPluginRequireExtension(_babel) {
     return {
         visitor: {
             CallExpression: commonJsExtension,

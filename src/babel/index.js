@@ -1,4 +1,2 @@
-import babelPluginRequireExtension from './plugin/require-extension.js';
-import babelPluginImportExtension from './plugin/import-extension.js';
-
-export default { babelPluginImportExtension, babelPluginRequireExtension };
+export { babelPluginRequireExtension } from './plugin/require-extension.js';
+export { babelPluginImportExtension } from './plugin/import-extension.js';

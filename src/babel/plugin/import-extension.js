@@ -1,4 +1,4 @@
-export default function babelPluginImportExtension(_babel) {
+export function babelPluginImportExtension(_babel) {
     return {
         visitor: {
             ImportDeclaration: esmModuleExtension,

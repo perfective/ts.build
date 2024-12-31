@@ -3,7 +3,7 @@ import gulpBabel from 'gulp-babel';
 import gulpRename from 'gulp-rename';
 import gulpTypeScript from 'gulp-typescript';
 
-export default {
+export const typescript = {
     esmBuild: esmBuildTask,
     cjsBuild: cjsBuildTask,
     tsDeclarations: tsDeclarationsTask,

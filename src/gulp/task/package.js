@@ -5,7 +5,7 @@ import { glob } from 'glob';
 import gulp from 'gulp';
 import gulpJsonEditor from 'gulp-json-editor';
 
-export default {
+export const packageJson = {
     packageJson: packageJsonTask,
     subPackageJson: subPackageJsonTask,
 };

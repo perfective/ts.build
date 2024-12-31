@@ -1,4 +1,4 @@
-export default {
+export const config = {
     arrowParens: 'avoid',
     bracketSameLine: true,
     bracketSpacing: true,

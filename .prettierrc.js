@@ -1,3 +1,3 @@
-import perfective from './src/prettier/index.js';
+import { config } from './src/prettier/index.js';
 
-export default perfective;
+export default config;

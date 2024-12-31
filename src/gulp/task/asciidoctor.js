@@ -3,7 +3,7 @@ import gulpAsciidoctor from '@asciidoctor/gulp-asciidoctor';
 import gulp from 'gulp';
 import gulpRename from 'gulp-rename';
 
-export default function asciidoctorTask(options = {}) {
+export function asciidoctorTask(options = {}) {
     return function documentation() {
         options = asciidoctorOptions(options);
         return gulp

@@ -1,5 +1,5 @@
 import gulp from 'gulp';
-import perfective from './src/gulp/index.js';
+import * as perfective from './src/gulp/index.js';
 
 function source() {
     return perfective.copy('./src/**/*.js', './dist')();
