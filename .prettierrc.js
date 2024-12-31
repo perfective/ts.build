@@ -1,3 +1,3 @@
-const perfective = require('./src/prettier');
+import perfective from './src/prettier/index.js';
 
-module.exports = perfective;
+export default perfective;

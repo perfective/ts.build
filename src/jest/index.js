@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     preset: 'ts-jest',
     testEnvironment: 'node',
     // Prevent "jest-haste-map: Haste module naming collision" issue when package.json is copied into ./dist

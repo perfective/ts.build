@@ -1,11 +1,11 @@
-module.exports = function babelPluginImportExtension(_babel) {
+export default function babelPluginImportExtension(_babel) {
     return {
         visitor: {
             ImportDeclaration: esmModuleExtension,
             ExportDeclaration: esmModuleExtension,
         },
     };
-};
+}
 
 function esmModuleExtension(path, state) {
     if (path.node.source !== null && isEsmModule(state.file.opts.filename)) {

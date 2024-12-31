@@ -1,9 +1,16 @@
-const gulp = require('gulp');
-const gulpBabel = require('gulp-babel');
-const gulpRename = require('gulp-rename');
-const gulpTypeScript = require('gulp-typescript');
+import gulp from 'gulp';
+import gulpBabel from 'gulp-babel';
+import gulpRename from 'gulp-rename';
+import gulpTypeScript from 'gulp-typescript';
 
-exports.esmBuild = function esmBuildTask(options = {}) {
+export default {
+    esmBuild: esmBuildTask,
+    cjsBuild: cjsBuildTask,
+    tsDeclarations: tsDeclarationsTask,
+    tsBuild: tsBuildTask,
+};
+
+function esmBuildTask(options = {}) {
     return function esmBuild() {
         options = typeScriptOptions(options);
         return typeScriptConfig(options.config, {
@@ -13,9 +20,9 @@ exports.esmBuild = function esmBuildTask(options = {}) {
             .pipe(gulpBabel())
             .pipe(gulp.dest(options.output));
     };
-};
+}
 
-exports.cjsBuild = function cjsBuildTask(options = {}) {
+function cjsBuildTask(options = {}) {
     return function cjsBuild() {
         options = typeScriptOptions(options);
         return typeScriptConfig(options.config, {
@@ -26,9 +33,9 @@ exports.cjsBuild = function cjsBuildTask(options = {}) {
             .pipe(gulpRename(fileExtension('js', 'cjs')))
             .pipe(gulp.dest(options.output));
     };
-};
+}
 
-exports.tsDeclarations = function tsDeclarationsTask(options = {}) {
+function tsDeclarationsTask(options = {}) {
     return function tsDeclarations() {
         options = typeScriptOptions(options);
         return typeScriptConfig(options.config, {
@@ -38,14 +45,14 @@ exports.tsDeclarations = function tsDeclarationsTask(options = {}) {
             declaration: true,
         }).pipe(gulp.dest(options.output));
     };
-};
+}
 
-exports.tsBuild = function tsBuildTask(options = {}) {
+function tsBuildTask(options = {}) {
     return function tsBuild() {
         options = typeScriptOptions(options);
         return typeScriptConfig(options.config).pipe(gulp.dest(options.output));
     };
-};
+}
 
 function typeScriptConfig(config, settings = {}) {
     const project = gulpTypeScript.createProject(config, settings);

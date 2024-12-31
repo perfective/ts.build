@@ -1,10 +1,10 @@
-module.exports = function babelPluginRequireExtension(_babel) {
+export default function babelPluginRequireExtension(_babel) {
     return {
         visitor: {
             CallExpression: commonJsExtension,
         },
     };
-};
+}
 
 function commonJsExtension(path) {
     if (path.get('callee').isIdentifier({ name: 'require' }) && path.get('arguments.0').isStringLiteral()) {

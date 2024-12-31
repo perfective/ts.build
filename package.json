@@ -20,6 +20,7 @@
         "url": "git+https://github.com/perfective/ts.build.git"
     },
     "license": "MIT",
+    "type": "module",
     "sideEffects": false,
     "scripts": {
         "dist": "gulp",

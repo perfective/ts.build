@@ -1,6 +1,5 @@
-const gulp = require('gulp');
-
-const perfective = require('./src/gulp');
+import gulp from 'gulp';
+import perfective from './src/gulp/index.js';
 
 function source() {
     return perfective.copy('./src/**/*.js', './dist')();
@@ -10,20 +9,21 @@ function tsConfig() {
     return perfective.copy('./tsconfig/*.json', './dist')();
 }
 
-exports.clean = perfective.clean(['./dist']);
-exports.documentation = perfective.asciidoctor();
-exports.default = gulp.series(
-    exports.clean,
+export const clean = perfective.clean(['./dist']);
+export const documentation = perfective.asciidoctor();
+
+export default gulp.series(
+    clean,
     source,
     perfective.packageJson.subPackageJson('@perfective/build', {
         main: './index.js',
-        module: undefined,
+        module: './index.js',
         types: undefined,
     }),
     perfective.packageJson.packageJson(
         {
             main: './index.js',
-            module: undefined,
+            module: './index.js',
             types: undefined,
         },
         {},
@@ -35,5 +35,5 @@ exports.default = gulp.series(
     ),
     tsConfig,
     perfective.copy(['./LICENSE*', './CHANGELOG*', './README*'], './dist'),
-    exports.documentation,
+    documentation,
 );

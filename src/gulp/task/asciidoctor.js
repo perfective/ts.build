@@ -1,9 +1,9 @@
-const gulpAsciidoctor = require('@asciidoctor/gulp-asciidoctor');
+import gulpAsciidoctor from '@asciidoctor/gulp-asciidoctor';
 
-const gulp = require('gulp');
-const gulpRename = require('gulp-rename');
+import gulp from 'gulp';
+import gulpRename from 'gulp-rename';
 
-module.exports = function asciidoctorTask(options = {}) {
+export default function asciidoctorTask(options = {}) {
     return function documentation() {
         options = asciidoctorOptions(options);
         return gulp
@@ -17,7 +17,7 @@ module.exports = function asciidoctorTask(options = {}) {
             )
             .pipe(gulp.dest(options.output));
     };
-};
+}
 
 function asciidoctorOptions(options) {
     return {

@@ -1,11 +1,16 @@
-const path = require('path');
-const stream = require('stream');
+import path from 'node:path';
+import stream from 'node:stream';
 
-const { glob } = require('glob');
-const gulp = require('gulp');
-const gulpJsonEditor = require('gulp-json-editor');
+import { glob } from 'glob';
+import gulp from 'gulp';
+import gulpJsonEditor from 'gulp-json-editor';
 
-exports.packageJson = function packageJsonTask(options, overrides, exports) {
+export default {
+    packageJson: packageJsonTask,
+    subPackageJson: subPackageJsonTask,
+};
+
+export function packageJsonTask(options, overrides, exports) {
     return async function packageJson() {
         options = packageJsonOptions(options);
         overrides = overrides ?? {};
@@ -48,7 +53,7 @@ exports.packageJson = function packageJsonTask(options, overrides, exports) {
             )
             .pipe(gulp.dest(options.output));
     };
-};
+}
 
 async function subPackages(output) {
     return glob(`${output}/*/package.json`).then(files => files.map(subPackageName));
@@ -76,7 +81,7 @@ function subPathExports(packages, options) {
         );
 }
 
-exports.subPackageJson = function subPackageJsonTask(packageName, options) {
+export function subPackageJsonTask(packageName, options) {
     return function subPackageJson() {
         options = packageJsonOptions(options);
         return gulp
@@ -100,7 +105,7 @@ exports.subPackageJson = function subPackageJsonTask(packageName, options) {
             )
             .pipe(gulp.dest(options.output));
     };
-};
+}
 
 function packageJsonOptions(options) {
     return {

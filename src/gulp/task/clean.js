@@ -1,7 +1,7 @@
-const del = require('del');
+import del from 'del';
 
-module.exports = function cleanTask(patterns, options) {
+export default function cleanTask(patterns, options) {
     return function clean() {
         return del(patterns, options);
     };
-};
+}

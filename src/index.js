@@ -1,9 +1,6 @@
-const babel = require('./babel');
-const gulp = require('./gulp');
-const jest = require('./jest');
-const prettier = require('./prettier');
+import babel from './babel/index.js';
+import gulp from './gulp/index.js';
+import jest from './jest/index.js';
+import prettier from './prettier/index.js';
 
-exports.babel = babel;
-exports.gulp = gulp;
-exports.jest = jest;
-exports.prettier = prettier;
+export { babel, gulp, jest, prettier };

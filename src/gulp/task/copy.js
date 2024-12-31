@@ -1,7 +1,7 @@
-const gulp = require('gulp');
+import gulp from 'gulp';
 
-module.exports = function copyTask(source, destination) {
+export default function copyTask(source, destination) {
     return function copy() {
         return gulp.src(source).pipe(gulp.dest(destination));
     };
-};
+}

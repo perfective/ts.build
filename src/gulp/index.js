@@ -1,11 +1,7 @@
-const asciidoctor = require('./task/asciidoctor');
-const clean = require('./task/clean');
-const copy = require('./task/copy');
-const packageJson = require('./task/package');
-const typescript = require('./task/typescript');
+import asciidoctor from './task/asciidoctor.js';
+import clean from './task/clean.js';
+import copy from './task/copy.js';
+import packageJson from './task/package.js';
+import typescript from './task/typescript.js';
 
-exports.asciidoctor = asciidoctor;
-exports.clean = clean;
-exports.copy = copy;
-exports.packageJson = packageJson;
-exports.typescript = typescript;
+export default { asciidoctor, clean, copy, packageJson, typescript };

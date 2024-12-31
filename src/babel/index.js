@@ -1,5 +1,4 @@
-const babelPluginImportExtension = require('./plugin/import-extension');
-const babelPluginRequireExtension = require('./plugin/require-extension');
+import babelPluginRequireExtension from './plugin/require-extension.js';
+import babelPluginImportExtension from './plugin/import-extension.js';
 
-exports.babelPluginImportExtension = babelPluginImportExtension;
-exports.babelPluginRequireExtension = babelPluginRequireExtension;
+export default { babelPluginImportExtension, babelPluginRequireExtension };
