@@ -94,9 +94,11 @@ export function subPackageJsonTask(packageName, options) {
                     module: options.module,
                     types: options.types,
                     exports: {
-                        types: options.types,
-                        import: options.module,
-                        require: options.main,
+                        '.': {
+                            types: options.types,
+                            import: options.module,
+                            require: options.main,
+                        },
                     },
                     sideEffects: false,
                     // Remove options.output as a custom option
