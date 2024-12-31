@@ -50,12 +50,12 @@ This plugin replaces `.js` extensions with the `.cjs` extensions in the NodeJS `
 +
 [source,javascript]
 ----
-const perfective = require('@perfective/build/babel');
+import { babelPluginRequireExtension } from '@perfective/build/babel';
 
-module.exports = {
+export default {
     presets: [],
     plugins: [
-        perfective.babelPluginRequireExtension,
+        babelPluginRequireExtension,
     ]
 };
 ----
@@ -86,9 +86,9 @@ you only need `.cjs` for CommonJS and keep `.js` for ESM modules.
 +
 [source,js]
 ----
-const perfective = require('@perfective/build/prettier');
+import { config } from '@perfective/build/prettier';
 
-module.exports = perfective;
+export default config;
 ----
 +
 . Setup `.prettierignore`:
@@ -141,9 +141,9 @@ and `lint:prettier:build` to verify the build (to fail if code is not formatted)
 +
 [source,js]
 ----
-const perfective = require('@perfective/build/jest');
+import { config } from '@perfective/build/jest';
 
-module.exports = perfective;
+export default config;
 ----
 +
 . Update `package.json` scripts:
