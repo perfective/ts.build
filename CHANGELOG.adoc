@@ -1,5 +1,9 @@
 = Changelog
 
+== v0.17.0
+
+* Allow specifying JS extension in the `babelPluginImportExtension()` function.
+
 == v0.16.0
 
 * *Breaking*: Migrated to ES Modules.

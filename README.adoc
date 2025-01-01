@@ -45,28 +45,23 @@ npm install --save-dev \
 }
 ----
 +
-. Add the `RequireExtension` plugin to your `babel.config.js`.
-This plugin replaces `.js` extensions with the `.cjs` extensions in the NodeJS `require()` statements.
+. Add the `RequireExtension` and `ImportExtension` plugins to your `babel.config.js`.
+`RequireExtension` replaces `.js` extensions with the `.cjs` extensions in `require()` statements.
+`ImportExtension` adds the required `.mjs` (or `.js`) extension to the `import` and `export` statements for ES modules.
 +
 [source,javascript]
 ----
-import { babelPluginRequireExtension } from '@perfective/build/babel';
+import { babelPluginImportExtension, babelPluginRequireExtension } from '@perfective/build/babel';
 
 export default {
     presets: [],
     plugins: [
         babelPluginRequireExtension,
+        babelPluginImportExtension('js'), // <.>
     ]
 };
 ----
-+
-[NOTE]
-====
-There is also available the `babelPluginImportExtension` plugin.
-It replaces `.js` extensions with `.mjs`,
-but on practice it is not needed:
-you only need `.cjs` for CommonJS and keep `.js` for ESM modules.
-====
+<.> Override the default extension (`mjs`).
 
 
 == Setup Prettier
