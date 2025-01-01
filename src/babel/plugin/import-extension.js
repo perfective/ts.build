@@ -1,16 +1,20 @@
-export function babelPluginImportExtension(_babel) {
-    return {
-        visitor: {
-            ImportDeclaration: esmModuleExtension,
-            ExportDeclaration: esmModuleExtension,
-        },
+export function babelPluginImportExtension(extension = 'mjs') {
+    return function babelPluginImportExtension(_babel) {
+        return {
+            visitor: {
+                ImportDeclaration: esModuleExtension(extension),
+                ExportDeclaration: esModuleExtension(extension),
+            },
+        };
     };
 }
 
-function esmModuleExtension(path, state) {
-    if (path.node.source !== null && isEsmModule(state.file.opts.filename)) {
-        mjsExtension(path.node.source);
-    }
+function esModuleExtension(extension = 'mjs') {
+    return function esmModuleExtension(path, state) {
+        if (path.node.source !== null && isEsmModule(state.file.opts.filename)) {
+            mjsExtension(path.node.source, extension);
+        }
+    };
 }
 
 const esmModuleFilenamePattern = /\.m?js$/u;
@@ -19,9 +23,9 @@ function isEsmModule(source) {
     return source.match(esmModuleFilenamePattern) !== null;
 }
 
-function mjsExtension(source) {
+function mjsExtension(source, extension = 'mjs') {
     if (isRelativePath(source.value)) {
-        source.value += '.mjs';
+        source.value += `.${extension}`;
     }
 }
 
