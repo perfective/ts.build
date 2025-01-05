@@ -11,7 +11,15 @@ export function babelPluginImportExtension(extension = 'mjs') {
 
 function esModuleExtension(extension = 'mjs') {
     return function esmModuleExtension(path, state) {
-        if (path.node.source !== null && isEsmModule(state.file.opts.filename)) {
+        if (path.node.source === undefined) {
+            // 'ExportDefaultDeclaration' node does not have `source` property.
+            return;
+        }
+        if (path.node.source === null) {
+            // 'ExportNamedDeclaration' node has `source` property set to `null`.
+            return;
+        }
+        if (isEsmModule(state.file.opts.filename)) {
             mjsExtension(path.node.source, extension);
         }
     };
