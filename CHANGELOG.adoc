@@ -1,8 +1,15 @@
 = Changelog
 
+== v0.17.1
+
+* Fix: skip nodes that have undefined `source`,
+* Fix: replace directory reference with an index file reference.
+
+
 == v0.17.0
 
 * Allow specifying JS extension in the `babelPluginImportExtension()` function.
+
 
 == v0.16.0
 
