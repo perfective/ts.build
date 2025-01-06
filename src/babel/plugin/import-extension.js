@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 export function babelPluginImportExtension(extension = 'mjs') {
     return function babelPluginImportExtension(_babel) {
         return {
@@ -20,7 +23,7 @@ function esModuleExtension(extension = 'mjs') {
             return;
         }
         if (isEsmModule(state.file.opts.filename)) {
-            mjsExtension(path.node.source, extension);
+            mjsExtension(path.node.source, state.file.opts.filename, extension);
         }
     };
 }
@@ -31,9 +34,15 @@ function isEsmModule(source) {
     return source.match(esmModuleFilenamePattern) !== null;
 }
 
-function mjsExtension(source, extension = 'mjs') {
+function mjsExtension(source, from, extension = 'mjs') {
     if (isRelativePath(source.value)) {
-        source.value += `.${extension}`;
+        const filepath = path.join(path.dirname(from), source.value);
+        const target = path.normalize(filepath);
+        if (fs.existsSync(target) && fs.statSync(target).isDirectory()) {
+            source.value += `/index.${extension}`;
+        } else {
+            source.value += `.${extension}`;
+        }
     }
 }
 
