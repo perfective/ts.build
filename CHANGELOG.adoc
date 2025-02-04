@@ -1,5 +1,11 @@
 = Changelog
 
+== v0.18.0
+
+* Make `gulp` an optional dependency.
+* Patched `typescript` to `5.7.3`.
+
+
 == v0.17.1
 
 * Fix: skip nodes that have undefined `source`,

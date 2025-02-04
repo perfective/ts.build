@@ -7,7 +7,6 @@ to reduce code duplication between projects setup.
 ```shell
 npm install --save-dev \
   @perfective/build \
-  gulp \
   typescript
 ```
 

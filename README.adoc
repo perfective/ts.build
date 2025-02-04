@@ -7,11 +7,10 @@ to reduce code duplication between projects setup.
 
 == Installation
 
-[source,shell script]
+[source,bash]
 ----
 npm install --save-dev \
     @perfective/build \
-    gulp \
     typescript
 ----
 
@@ -25,7 +24,7 @@ npm install --save-dev \
 {
     "devDependencies": {
         "gulp": "^5.0.0",
-        "typescript": "~5.7.2"
+        "typescript": "~5.7.3"
     }
 }
 ----
