@@ -1,8 +1,15 @@
 = Changelog
 
+== v0.19.0
+
+* Updated `typescript` to `5.8.2`.
+* Updated `prettier` to `3.5.2`:
+** Set `experimentalOperatorPosition` to `start`.
+
+
 == v0.18.0
 
-* Make `gulp` an optional dependency.
+* Made `gulp` an optional dependency.
 * Patched `typescript` to `5.7.3`.
 
 
