@@ -1,5 +1,12 @@
 = Changelog
 
+== v0.19.1
+
+* Patched `typescript` to `5.8.3`.
+* Patched `prettier` to `3.5.3`.
+* Updated `ts-jest` to `29.3.2`.
+
+
 == v0.19.0
 
 * Updated `typescript` to `5.8.2`.
