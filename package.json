@@ -1,6 +1,6 @@
 {
     "name": "@perfective/build",
-    "version": "0.19.1",
+    "version": "0.19.2",
     "description": "Configurations and functions to build TypeScript projects",
     "keywords": [
         "es2015",
@@ -57,7 +57,7 @@
     "dependencies": {
         "@asciidoctor/gulp-asciidoctor": "^2.2.5",
         "del": "^8.0.0",
-        "glob": "^11.0.1",
+        "glob": "^11.0.2",
         "gulp": "^5.0.0",
         "gulp-babel": "^8.0.0",
         "gulp-json-editor": "^2.6.0",

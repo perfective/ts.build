@@ -1,5 +1,11 @@
 = Changelog
 
+== v0.19.2
+
+* Added `createFile` and `createJsonFile` Gulp tasks
+* Added `.cjs`/`.mjs` and `.cts`/`.mts` to the example `.prettierignore`
+
+
 == v0.19.1
 
 * Patched `typescript` to `5.8.3`.
