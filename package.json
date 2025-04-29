@@ -62,7 +62,8 @@
         "gulp-babel": "^8.0.0",
         "gulp-json-editor": "^2.6.0",
         "gulp-rename": "^2.0.0",
-        "gulp-typescript": "^6.0.0-alpha.1"
+        "gulp-typescript": "^6.0.0-alpha.1",
+        "vinyl": "~2.2.1"
     },
     "devDependencies": {
         "prettier": "~3.5.3",
