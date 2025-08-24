@@ -1,5 +1,11 @@
 = Changelog
 
+== v0.20.0
+
+* Upgraded `jest` to `30.0.5`.
+* Updated `prettier` to `3.6.2`.
+
+
 == v0.19.2
 
 * Added `createFile` and `createJsonFile` Gulp tasks
