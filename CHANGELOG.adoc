@@ -1,5 +1,10 @@
 = Changelog
 
+== v0.21.0
+
+* Updated `typescript` to `5.9.2`.
+
+
 == v0.20.0
 
 * Upgraded `jest` to `30.0.5`.
