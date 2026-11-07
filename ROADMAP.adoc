@@ -12,10 +12,6 @@ Order matters: finish each stage before starting the next unless the maintainer 
 
 == Catch up on technical debt
 
-=== Dependencies
-
-* Update `actions/checkout` and `actions/setup-node` in the GitHub workflows.
-
 === Documentation
 
 * Document the Gulp tasks (`clean`, `copy`, `asciidoctor`, `file`, `packageJson`, `typescript`) in the `README.adoc`,
