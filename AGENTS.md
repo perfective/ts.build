@@ -44,10 +44,12 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
 ## Documentation
 
 - Consumer docs: `README.adoc` (canonical), short `README.md` pointer.
-  Update them in the **Publish** commit so `main` matches what npm ships.
+  Do **not** edit them on feature/dependency commits. `main` on GitHub must stay consistent with the
+  latest published package, so README changes belong only in the **Publish** commit
+  (together with version bump and `CHANGELOG.adoc`).
 - `AGENTS.md` / `ROADMAP.adoc`: development process only; update with the work that changes them.
   Do not copy them into `dist/`.
-- Remaining doc gaps are listed in `ROADMAP.adoc`.
+- Remaining doc gaps are listed in `ROADMAP.adoc` (apply to README at release time).
 
 ## Git and releases (this repo)
 
