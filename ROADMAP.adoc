@@ -48,7 +48,8 @@ Removing it removes the `cjsBuild` task and the `RequireExtension` plugin.
 === TypeScript configuration
 
 * Revisit `tsconfig/tsconfig.strict.json` default `"module": "commonjs"`
-(likely leftover / IDE default; Gulp already overrides `module` per emit target).
+and `"moduleResolution": "bundler"` (set for TypeScript 6 after `node10` was deprecated;
+Gulp already overrides `module` per emit target).
 Prefer a modern baseline such as `NodeNext` once consumers are accounted for.
 * Choose a newer `target` than `es2015`.
 * Move `experimentalDecorators` out of the base configuration (required only for Angular).
