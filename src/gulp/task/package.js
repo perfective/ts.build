@@ -45,7 +45,7 @@ export function packageJsonTask(options, overrides, exports) {
             )
             .pipe(
                 gulpJsonEditor({
-                    // Add "scripts" back to the package.json to avoid an NPM warning.
+                    // Add "scripts" back to the package.json to avoid an npm warning.
                     // In order for scripts to be empty, it has to be removed first.
                     // Otherwise, gulpJsonEditor uses deep merge and "scripts" property remains as is.
                     scripts: {},

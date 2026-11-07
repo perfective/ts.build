@@ -5,7 +5,7 @@
 * Patched `typescript` to `5.9.3`.
 * Updated `prettier` to `3.7.4`.
 * Updated `jest` to `30.2.0`.
-* Patches `ts-jest` to `29.4.6`.
+* Patched `ts-jest` to `29.4.6`.
 
 
 == v0.21.0
@@ -21,8 +21,8 @@
 
 == v0.19.2
 
-* Added `createFile` and `createJsonFile` Gulp tasks
-* Added `.cjs`/`.mjs` and `.cts`/`.mts` to the example `.prettierignore`
+* Added `createFile` and `createJsonFile` Gulp tasks.
+* Added `.cjs`/`.mjs` and `.cts`/`.mts` to the example `.prettierignore`.
 
 
 == v0.19.1
@@ -124,7 +124,7 @@
 == v0.11.1
 
 * Patched `typescript` to `5.3.3`.
-* Patched `prettier`  to `3.1.1`.
+* Patched `prettier` to `3.1.1`.
 * Patched `@types/jest` to `29.5.11`.
 
 
@@ -150,13 +150,13 @@ Changes since v0.9.0:
 
 == v0.10.0-rc
 
-* Patched `@types/jest` to `29.5.8`
-* Patched `glob` to `10.3.10`
+* Patched `@types/jest` to `29.5.8`.
+* Patched `glob` to `10.3.10`.
 
 
 == v0.10.0-beta.1
 
-* [Internal] Fixed GitHub Actions
+* [Internal] Fixed GitHub Actions.
 
 
 == v0.10.0-beta
@@ -206,7 +206,7 @@ Changes since v0.9.0:
 
 * Upgraded `typescript` to `5.0.4`.
 ** Fixed compilation `Error TS6053: File '@perfective/build/tsconfig.strict.json' not found`.
-** Removed https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/#deprecations-and-default-changes[deprecated configurations options]
+** Removed https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/#deprecations-and-default-changes[deprecated configuration options]
 from `tsconfig.strict.json`.
 ** Explicitly specified non-project compiler options in the `tsconfig.strict.json`.
 +
@@ -231,7 +231,7 @@ from `tsconfig.strict.json`.
 == v0.8.0-alpha.1
 
 * Fixed compilation `Error TS6053: File '@perfective/build/tsconfig.strict.json' not found`.
-* Removed https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/#deprecations-and-default-changes[deprecated configurations options]
+* Removed https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/#deprecations-and-default-changes[deprecated configuration options]
 from `tsconfig.strict.json`.
 * Added support to pass an explicit `exports` list to the `packageJson()` Gulp task.
 * Patched `typescript` to `5.0.3`.
@@ -336,7 +336,7 @@ https://devblogs.microsoft.com/typescript/announcing-typescript-4-7/#package-jso
 
 == v0.1.0
 
-* Added Gulp tasks to build TypeScript projects
+* Added Gulp tasks to build TypeScript projects.
 with CommonJS and ES modules support.
 * Published `tsconfig.strict.json`.
 * Published `@perfective/build/prettier` configuration.

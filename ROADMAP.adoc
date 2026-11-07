@@ -15,7 +15,6 @@ Order matters: finish each stage before starting the next unless the maintainer 
 === Documentation
 
 * Document that `gulp-babel` requires `@babel/core` as a peer dependency.
-* Fix "Patches" to "Patched" in the `v0.22.0` section of the `CHANGELOG.adoc`.
 
 
 == Quality control
