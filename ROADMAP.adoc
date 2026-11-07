@@ -24,10 +24,6 @@ including dual-package vs ESM-only consumer recipes (see `ts.common` and `eslint
 * Document that `gulp-babel` requires `@babel/core` as a peer dependency.
 * Fix "Patches" to "Patched" in the `v0.22.0` section of the `CHANGELOG.adoc`.
 
-=== Consumers
-
-* Fix the `@perfective/build` dependency in `ts.ai` from `^0.19.0` to `~0.22.0`.
-
 
 == Quality control
 
