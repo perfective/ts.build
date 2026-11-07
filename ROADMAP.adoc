@@ -1,0 +1,80 @@
+= Roadmap
+
+Planned work for `@perfective/build`.
+Order matters: finish each stage before starting the next unless the maintainer says otherwise.
+
+. Align consumer documentation with the current code (see Documentation below).
+. Keep `AGENTS.md` accurate as development process changes.
+. Catch up dependency releases for this package, then cascade to consumers
+(see parent workspace `AGENTS.md` and package `AGENTS.md`).
+. Quality control, then major changes (sections below).
+
+
+== Catch up on technical debt
+
+=== Dependencies
+
+* Drop Node.js `20.x` from the CI matrix (end-of-life since April 2026).
+* Update `actions/checkout` and `actions/setup-node` in the GitHub workflows.
+
+=== Documentation
+
+* Document the Gulp tasks (`clean`, `copy`, `asciidoctor`, `file`, `packageJson`, `typescript`) in the `README.adoc`,
+including dual-package vs ESM-only consumer recipes (see `ts.common` and `eslint-config` gulpfiles).
+* Document that `gulp-babel` requires `@babel/core` as a peer dependency.
+* Fix "Patches" to "Patched" in the `v0.22.0` section of the `CHANGELOG.adoc`.
+
+=== Consumers
+
+* Fix the `@perfective/build` dependency in `ts.ai` from `^0.19.0` to `~0.22.0`.
+
+
+== Quality control
+
+Required before any major changes.
+
+* Lint the package's own JavaScript code and type-check it with TypeScript
+without introducing circular dependencies (`@perfective/eslint-config` depends on `@perfective/build`).
+* Add integration tests to verify that consumers (`ts.common`, `eslint-config`) still build
+(Perfective packages target 100% coverage; this repo has no tests yet).
+
+
+== Major changes
+
+To be discussed in detail after the technical debt is caught up.
+
+=== Remove Gulp and Babel
+
+The goal is to depend only on TypeScript, Prettier, and Jest.
+
+* Replace the Babel import extension plugins with TypeScript options
+(e.g., `rewriteRelativeImportExtensions` or `.js` extensions in imports with `module: nodenext`).
+Requires changing imports in `ts.common`.
+* Replace the Gulp tasks.
+* Migrate this package from hand-written ESM JavaScript to TypeScript without a painful self-rebuild cycle.
+
+=== Package output
+
+* Decide whether consumers still need CommonJS output.
+Removing it removes the `cjsBuild` task and the `RequireExtension` plugin.
+* Remove generated sub-package `package.json` files that exist for compatibility of sub-path imports.
+* Check whether CommonJS consumers of `@perfective/build` itself rely on `require(esm)`
+(the `require` exports point to ES modules).
+* Drop the `docs.html` documentation and the `@asciidoctor/gulp-asciidoctor` dependency.
+* Decide whether the unused root `src/index.js` barrel should remain for compatibility or be removed.
+* Optionally slim the install surface: `gulp` is both a hard dependency and an optional peer.
+
+=== TypeScript configuration
+
+* Revisit `tsconfig/tsconfig.strict.json` default `"module": "commonjs"`
+(likely leftover / IDE default; Gulp already overrides `module` per emit target).
+Prefer a modern baseline such as `NodeNext` once consumers are accounted for.
+* Choose a newer `target` than `es2015`.
+* Move `experimentalDecorators` out of the base configuration (required only for Angular).
+* Review `useDefineForClassFields: false` (legacy from the ES2015 target).
+* Remove the `importsNotUsedAsValues` option (deprecated since TypeScript 5.0).
+
+=== Known limitations
+
+* `babelPluginRequireExtension` only handles `const x = require('./y')` declarations
+and is likely to fail on `require()` calls wrapped in other calls (e.g., `__importDefault(require('./y'))`).
