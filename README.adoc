@@ -21,12 +21,16 @@ The main purpose of `@perfective/build` is to compile a TypeScript library into 
 with ES modules (`.js`), CommonJS (`.cjs`), and declaration files (`.d.ts`),
 instead of using two separate TypeScript compiler output trees.
 
-. Check that dev dependencies include correct versions of `gulp` and `typescript`:
+. Check that dev dependencies include correct versions of `@babel/core`, `gulp`, and `typescript`.
+`@babel/core` and `gulp` are optional peer dependencies of `@perfective/build`;
+install them when using the Gulp TypeScript tasks and `@perfective/build/babel`.
+The TypeScript Gulp tasks run compiled output through `gulp-babel`, which requires `@babel/core`.
 +
 [source,json]
 ----
 {
     "devDependencies": {
+        "@babel/core": "^7.28.5",
         "gulp": "^5.0.1",
         "typescript": "~5.9.3"
     }

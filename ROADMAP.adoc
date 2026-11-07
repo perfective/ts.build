@@ -3,18 +3,11 @@
 Planned work for `@perfective/build`.
 Order matters: finish each stage before starting the next unless the maintainer says otherwise.
 
-. Keep consumer documentation aligned with the current code (see Documentation below).
+. Keep consumer documentation aligned with the current code.
 . Keep `AGENTS.md` accurate as development process changes.
 . Catch up dependency releases for this package, then cascade to consumers
 (see parent workspace `AGENTS.md` and package `AGENTS.md`).
 . Quality control, then major changes (sections below).
-
-
-== Catch up on technical debt
-
-=== Documentation
-
-* Document that `gulp-babel` requires `@babel/core` as a peer dependency.
 
 
 == Quality control
