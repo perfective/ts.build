@@ -3,7 +3,7 @@
 Planned work for `@perfective/build`.
 Order matters: finish each stage before starting the next unless the maintainer says otherwise.
 
-. Align consumer documentation with the current code (see Documentation below).
+. Keep consumer documentation aligned with the current code (see Documentation below).
 . Keep `AGENTS.md` accurate as development process changes.
 . Catch up dependency releases for this package, then cascade to consumers
 (see parent workspace `AGENTS.md` and package `AGENTS.md`).
@@ -14,8 +14,6 @@ Order matters: finish each stage before starting the next unless the maintainer 
 
 === Documentation
 
-* Document the Gulp tasks (`clean`, `copy`, `asciidoctor`, `file`, `packageJson`, `typescript`) in the `README.adoc`,
-including dual-package vs ESM-only consumer recipes (see `ts.common` and `eslint-config` gulpfiles).
 * Document that `gulp-babel` requires `@babel/core` as a peer dependency.
 * Fix "Patches" to "Patched" in the `v0.22.0` section of the `CHANGELOG.adoc`.
 

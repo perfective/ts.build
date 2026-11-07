@@ -17,6 +17,10 @@ npm install --save-dev \
 
 == Building a TypeScript project
 
+The main purpose of `@perfective/build` is to compile a TypeScript library into **one** `dist/` directory
+with ES modules (`.js`), CommonJS (`.cjs`), and declaration files (`.d.ts`),
+instead of using two separate TypeScript compiler output trees.
+
 . Check that dev dependencies include correct versions of `gulp` and `typescript`:
 +
 [source,json]
@@ -44,9 +48,12 @@ npm install --save-dev \
 }
 ----
 +
+Add a `tsconfig.build.json` used by the Gulp TypeScript tasks (defaults to `./tsconfig.build.json`).
++
 . Add the `RequireExtension` and `ImportExtension` plugins to your `babel.config.js`.
-`RequireExtension` replaces `.js` extensions with the `.cjs` extensions in `require()` statements.
-`ImportExtension` adds the required `.mjs` (or `.js`) extension to the `import` and `export` statements for ES modules.
+`RequireExtension` appends the `.cjs` extension to relative paths in `require()` statements.
+`ImportExtension` adds the required `.mjs` (or `.js`) extension to relative `import` and `export` paths for ES modules.
+The TypeScript Gulp tasks run output through `gulp-babel`, which applies this config.
 +
 [source,javascript]
 ----
@@ -61,6 +68,138 @@ export default {
 };
 ----
 <.> Override the default extension (`mjs`).
++
+. Create a `gulpfile.js` that emits ESM, CommonJS, and declarations into the same `dist/` tree:
++
+[source,javascript]
+----
+import gulp from 'gulp';
+
+import * as build from '@perfective/build/gulp';
+
+export const clean = build.clean(['./dist']);
+export const docs = build.asciidoctor();
+
+export default gulp.series(
+    clean,
+    build.typescript.esmBuild(),
+    build.typescript.cjsBuild(),
+    build.typescript.tsDeclarations(),
+    build.packageJson.subPackageJson('@scope/package', {
+        type: 'module',
+    }),
+    build.packageJson.packageJson(),
+    build.copy([
+        './LICENSE*',
+        './CHANGELOG*',
+        './README*',
+    ], './dist'),
+    docs,
+);
+----
++
+For an **ESM-only** package (for example, ESLint flat configs), omit `cjsBuild()`
+and clear the CommonJS entry when generating `package.json`:
++
+[source,javascript]
+----
+build.typescript.esmBuild(),
+build.typescript.tsDeclarations(),
+build.packageJson.packageJson({
+    main: undefined,
+    module: './index.js',
+    types: './index.d.ts',
+}),
+----
+
+
+== Gulp tasks
+
+Import task factories from `@perfective/build/gulp`.
+Each factory returns a Gulp task function.
+
+=== `clean(patterns, options?)`
+
+Deletes files with https://www.npmjs.com/package/del[`del`].
+`patterns` is a glob or an array of globs; `options` is passed through to `deleteAsync`.
+
+[source,javascript]
+----
+export const clean = build.clean(['./dist', '*.tsbuildinfo']);
+----
+
+=== `copy(source, destination)`
+
+Copies files with `gulp.src(source).pipe(gulp.dest(destination))`.
+
+[source,javascript]
+----
+build.copy(['./LICENSE*', './CHANGELOG*', './README*'], './dist')
+----
+
+=== `asciidoctor(options?)`
+
+Renders AsciiDoc into HTML for the published package.
+
+Defaults::
+* `source`: `./src/index.adoc`
+* `output`: `./dist`
+* `name`: `docs` (output basename, e.g. `docs.html`)
+
+=== `file.createFile(filepath, contents)` / `file.createJsonFile(filepath, json)`
+
+Writes a Vinyl file into the project (for example, nested `package.json` files under `dist/`).
+
+[source,javascript]
+----
+build.file.createJsonFile('./dist/jest/package.json', {
+    name: '@scope/package/jest',
+    type: 'module',
+    module: '../config/jest/index.js',
+    types: '../config/jest/index.d.ts',
+    exports: {
+        '.': {
+            types: '../config/jest/index.d.ts',
+            import: '../config/jest/index.js',
+        },
+    },
+    sideEffects: false,
+})
+----
+
+=== `typescript`
+
+All TypeScript tasks accept `{ config, output }` (defaults: `./tsconfig.build.json`, `./dist`).
+Each task overrides `compilerOptions.module` for that emit; do not rely on the base `tsconfig` `module` alone.
+
+`esmBuild()`::
+Compiles with `module: esnext`, runs Babel, writes `.js` files.
+
+`cjsBuild()`::
+Compiles with `module: commonjs`, runs Babel, renames `.js` to `.cjs`.
+
+`tsDeclarations()`::
+Emits `.d.ts` only (`emitDeclarationOnly`), keeps comments.
+
+`tsBuild()`::
+Plain TypeScript emit with the project config (no Babel, no rename).
+
+=== `packageJson`
+
+Generate publishable `package.json` files under `output` (default `./dist`).
+
+`subPackageJson(packageName, options?)`::
+For each `dist/*/index.js`, writes a scoped sub-package `package.json`
+named `{packageName}/{directory}` (for Node subpath / directory imports).
+Run this **before** `packageJson()` so root `exports` can discover those files.
+
+`packageJson(options?, overrides?, exports?)`::
+Copies the root `package.json` into `output`, drops `devDependencies`,
+forces `scripts` to `{}`, and builds `exports` for `.` plus discovered sub-packages.
+Default entry fields: `main: './index.cjs'`, `module: './index.js'`, `types: './index.d.ts'`.
+* `options` — merged into the result (including `main` / `module` / `types` / `output`).
+* `overrides` — applied last (deep merge via `gulp-json-editor`).
+* `exports` — extra `exports` entries merged after auto-discovered subpaths.
 
 
 == Setup Prettier

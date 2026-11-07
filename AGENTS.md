@@ -47,7 +47,7 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
   Update them in the **Publish** commit so `main` matches what npm ships.
 - `AGENTS.md` / `ROADMAP.adoc`: development process only; update with the work that changes them.
   Do not copy them into `dist/`.
-- Docs currently lag the Gulp API; aligning them is the first planned task (see `ROADMAP.adoc`).
+- Remaining doc gaps are listed in `ROADMAP.adoc`.
 
 ## Git and releases (this repo)
 
