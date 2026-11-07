@@ -14,7 +14,6 @@ Order matters: finish each stage before starting the next unless the maintainer 
 
 === Dependencies
 
-* Drop Node.js `20.x` from the CI matrix (end-of-life since April 2026).
 * Update `actions/checkout` and `actions/setup-node` in the GitHub workflows.
 
 === Documentation
