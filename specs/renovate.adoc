@@ -1,0 +1,173 @@
+= Dependency maintenance with Renovate
+:renovate-docs: https://docs.renovatebot.com
+:renovate-app: https://github.com/apps/renovate
+
+This document describes the **end-state** design for Perfective TypeScript package dependency updates.
+The short-term pilot is Renovate discovery only (see <<pilot>>).
+Automation beyond that is built later; merge and publish always stay with the maintainer.
+
+
+== Goals
+
+* Replace GitHub notification triage as the way to find dependency releases.
+* Keep **one dependency update = one atomic commit on `main`** (Perfective commit verbs and cascade unchanged).
+* Support **semantic** updates (for example TypeScript 6 requiring `tsconfig` changes), not only lockfile bumps.
+* Never auto-merge or auto-publish.
+* Keep a path from GitHub-hosted tooling today to a self-hosted controller later.
+
+
+== Non-goals
+
+* Automatic merge or `npm publish`.
+* Agent decisions that change product policy (dropped Node/TypeScript support ranges, preset semantics, new runtime dependencies).
+* Agents editing `.github/workflows`, release, or publish configuration.
+* Using the maintainer's PGP keys for bots.
+* Syncing GitHub notification "Done" state (optional later; off by default).
+
+
+[[pilot]]
+== Current pilot
+
+* Config file: `renovate.json` in this repository.
+* Host: Mend Renovate GitHub App ({renovate-app}) on `perfective/ts.build` only.
+* Behavior: Dependency Dashboard; one PR per dependency; no automerge; labels for majors, peer ranges, TypeScript deep review, and security.
+* Process: maintainer or Cursor reviews each PR, applies Perfective commit style (often via the `cursor` branch), validates, merges; README and changelog still only at Publish.
+
+The pilot exists to observe Renovate's real PR shape, changelog embedding, and dashboard before investing in a controller.
+
+
+== End-state architecture
+
+[cols="1,2,2", options="header"]
+|===
+| Component | Owns | Must not
+
+| Renovate
+| Detect updates; edit `package.json` / lockfile; open one PR per update; embed changelogs; security PRs; Dependency Dashboard
+| Automerge; regenerate a branch after handoff; invoke agents
+
+| Controller (custom, trusted)
+| Reconcile PR state; choose review tier; dispatch agents; enforce diff policy; write the handoff commit; post report and `agent-review` check; audit log
+| Check out or execute untrusted PR code; hold publish credentials
+
+| Agent (adapter, untrusted output)
+| Read release notes and repo usage; produce migration diff and report; run lint/build in a sandbox
+| Push to the Renovate branch; touch workflows or release config; see repo secrets
+
+| CI
+| Existing `pull_request` matrix (`lint:build`, `dist`) with read-only permissions
+| `pull_request_target` with untrusted checkout; repo secrets on fork PRs
+
+| Maintainer (Andrey)
+| Policy, approval, merge, Publish, peer-range and support decisions
+|
+|===
+
+Flow:
+
+. Renovate polls npm / GitHub and opens `renovate/*` PRs.
+. Controller notices a Renovate PR (schedule reconciler is the correctness path; webhooks are a fast wake-up only).
+. Agent reviews **every intervening release** and classifies: clean, migration needed, or needs human.
+. If migration is needed, the controller adds **one App-signed commit** on the same PR (compare-and-swap on head SHA). Do not amend Renovate's commit.
+. CI runs on the PR head.
+. Maintainer approves and **squash-merges** so `main` gets a single atomic commit (version bump + lockfile + config/source fixes).
+. Maintainer publishes separately (`Publish vX.Y.Z` → tag → GitHub Release).
+
+
+== Atomic migration policy
+
+For updates like TypeScript 5.9 → 6.0, `package.json`, the lockfile, and config/source fixes must be **one commit on `main`**.
+
+**Policy A (default):** one Renovate PR; controller (or human) adds a follow-up commit; squash merge to `main`.
+Renovate stops updating a branch once another author has committed to it—by design after handoff.
+
+**Policy B (opt-in):** agent-owned single-commit PR built from the base branch; Renovate PR closed after merge.
+Use only if the review branch itself must also be a single commit.
+
+
+== Version and review policy
+
+* Reason from the **lockfile installed version** to the target, not only from the manifest range.
+* Prereleases / non-`latest` tags: ignore unless already in use or an explicit per-package rule.
+* **TypeScript** always gets deep review (any SemVer level).
+* **Peer dependency** range changes need maintainer decision when they affect published presets.
+* Tooling that shapes published output (TypeScript, Babel, Gulp plugins) is reviewed like product-facing deps.
+* Default branch only, unless a `vX.Y.x` maintenance line is intentionally covered.
+* npm release-age cooldown (pilot: via `security:minimumReleaseAgeNpm`); security updates bypass the cooldown.
+
+
+== Release-note review (agent or human)
+
+. List every published version strictly after the installed one up to the target.
+. Resolve notes from package repository metadata and Renovate's embedded changelog; record exact URLs.
+. Summarize breaking changes, deprecations, engines/peers, and security fixes per version.
+. Map findings to this repo (and note consumer impact for exported presets).
+. If any version lacks notes, classify **needs human**—never treat missing notes as "no changes."
+
+
+== Migration and validation
+
+* Fix the cause described in the notes; do not delete options or loosen strictness only to silence CI.
+* Exported presets (`tsconfig.strict.json`, Jest/Prettier configs, Babel plugins) are product surface; meaning changes need maintainer approval.
+* Until this package has its own tests, validate with `npm run lint:build`, `npm run dist`, and `npm link` into a real consumer (`ts.common` or `eslint-config`).
+* Allowed agent diff paths (end state): `package.json`, lockfile, `tsconfig*`, `src/**`, `ROADMAP.adoc`, `AGENTS.md`.
+  **Not** `README*`, `CHANGELOG.adoc`, or `.github/workflows` (README/CHANGELOG only in Publish commits).
+
+
+== Security
+
+* Release notes, changelogs, and PR bodies are untrusted input.
+* Controller enforces path allow-list, diff size caps, and blocks new dependencies / `package.json` script changes unless flagged for humans.
+* CI stays on `pull_request` with read-only contents; no `pull_request_target` for this flow.
+* Controller App must not have Workflows permission; CODEOWNERS should cover `.github/`.
+* Act only on same-repo PRs authored by the Renovate identity.
+
+
+== Identity and merging
+
+* Dedicated GitHub App for the controller (fine-grained permissions, short-lived tokens).
+* Bot commits via GitHub API so they verify under signed-commit rules; maintainer PGP is not used by bots.
+* `main` ruleset (end state): PR required, approval, required CI + `agent-review`, squash only, no force push.
+* No automatic publish; npm OIDC publish stays a manual release.
+
+
+== Hosting roadmap
+
+. **Now:** Mend Renovate Community Cloud + manual/Cursor handling of PRs.
+. **Next:** controller as a scheduled workflow in a private ops repo (App token), Cursor Cloud Agents via an adapter.
+. **Later:** self-host Renovate if needed; move the controller to a small service (e.g. GCP) behind the same adapter contract.
+
+
+== Agent review tiers (cost control)
+
+* **Tier 0** — Notes summary only (routine patches / obvious tooling).
+* **Tier 1** — Notes + repo usage scan (minors).
+* **Tier 2** — Full migration (majors, TypeScript, peer/preset-affecting updates).
+
+End-state caps (indicative): one agent run per repo at a time, bounded global concurrency, at most two attempts per idempotency key, then needs human.
+
+
+== Rollout
+
+. Sign off this design; keep the pilot `renovate.json`.
+. Shadow mode: controller posts reports only (no handoff commits).
+. Handoff mode on `ts.build`: controller commits + rulesets.
+. Org preset for `ts.common`, `eslint-config`, `eslint-config-angular`, `eslint-config-react`.
+. Optional self-host / GCP portability.
+
+
+== Acceptance scenarios (end state)
+
+* TypeScript major: every intervening note cited; config/source fixes in one controller commit; CI and consumer link-check green; squash → one commit on `main`.
+* Routine patch: Tier 0 report, no extra commit, Renovate keeps branch ownership until merge.
+* Missing notes → needs human.
+* Renovate pushes mid-run → CAS handoff fails; run discarded; restart on new SHA.
+* Malicious instruction in a release note → no workflow/script exfil diff; needs human.
+
+
+== Related files
+
+* `specs/` — design specifications for this repository (not published consumer docs).
+* `renovate.json` — live Renovate configuration (pilot).
+* `AGENTS.md` — day-to-day agent rules for this repository.
+* `ROADMAP.adoc` — package backlog (not Renovate-specific).

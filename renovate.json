@@ -1,0 +1,37 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["config:recommended", "security:minimumReleaseAgeNpm"],
+    "ignorePresets": ["group:monorepos", "group:recommended"],
+    "labels": ["dependencies"],
+    "automerge": false,
+    "dependencyDashboard": true,
+    "prConcurrentLimit": 3,
+    "prHourlyLimit": 2,
+    "rebaseLabel": "renovate-regenerate",
+    "osvVulnerabilityAlerts": true,
+    "vulnerabilityAlerts": {
+        "labels": ["dependencies", "vulnerability"]
+    },
+    "packageRules": [
+        {
+            "description": "Label major updates for careful review",
+            "matchUpdateTypes": ["major"],
+            "addLabels": ["help wanted"]
+        },
+        {
+            "description": "Peer range changes need maintainer judgment",
+            "matchDepTypes": ["peerDependencies"],
+            "addLabels": ["help wanted"]
+        },
+        {
+            "description": "TypeScript updates often need config migration",
+            "matchPackageNames": ["typescript"],
+            "addLabels": ["help wanted"]
+        },
+        {
+            "description": "GitHub Actions: low-risk, weekly batch visibility",
+            "matchManagers": ["github-actions"],
+            "extends": ["schedule:weekly"]
+        }
+    ]
+}

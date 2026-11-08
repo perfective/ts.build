@@ -63,6 +63,17 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
 - Maintainer release: `Publish vX.Y.Z` commit (includes `npm update` for peers) → wait CI → signed annotated tag → GitHub Release → publish workflow.
   Prereleases are unused until ~v1.0 (`next` npm tag remains wired for `prereleased` events).
 
+## Renovate (dependency discovery)
+
+Config: `renovate.json`. Renovate opens **one PR per dependency** (no automerge). It does not migrate configs.
+End-state design (controller, agents, squash atomicity): `specs/renovate.adoc`.
+
+- Process Renovate PRs onto `cursor` (or squash-merge) with Perfective commit messages; do not amend Renovate’s commit on a live Renovate branch if Renovate still owns it—add a follow-up commit or recreate on `cursor`.
+- Labels: `dependencies`; `major`; `peer-range`; `deep-review` (TypeScript); `security` for vulnerability PRs.
+- Semantic updates (e.g. TypeScript majors): read every intervening release note, adapt `tsconfig*` / source as needed, keep README for Publish.
+- Dependency Dashboard issue lists pending updates; use it instead of GitHub notification triage.
+- To force Renovate to regenerate a branch, use the `renovate-regenerate` label (not the default `rebase`).
+
 ## Catch-up order after this package
 
 1. Publish `@perfective/build`
