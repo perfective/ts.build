@@ -66,13 +66,20 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
 ## Renovate (dependency discovery)
 
 Config: `renovate.json`. Renovate opens **one PR per dependency** (no automerge). It does not migrate configs.
+`rangeStrategy` is `bump` so in-range updates also raise the pin in `package.json` (not lockfile-only).
 End-state design (controller, agents, squash atomicity): `specs/renovate.adoc`.
 
-- Process Renovate PRs onto `cursor` (or squash-merge) with Perfective commit messages; do not amend Renovate’s commit on a live Renovate branch if Renovate still owns it—add a follow-up commit or recreate on `cursor`.
-- Labels: `dependencies`; `major`; `peer-range`; `deep-review` (TypeScript); `security` for vulnerability PRs.
-- Semantic updates (e.g. TypeScript majors): read every intervening release note, adapt `tsconfig*` / source as needed, keep README for Publish.
-- Dependency Dashboard issue lists pending updates; use it instead of GitHub notification triage.
-- To force Renovate to regenerate a branch, use the `renovate-regenerate` label (not the default `rebase`).
+### Handling a Renovate PR
+
+1. **Agent review** (required before merge) — catch policy misses Renovate will not:
+    - Both `package.json` **and** the lockfile move when this repo pins that dependency (direct or peer). Lockfile-only while a pin stays on an older minor/patch is a defect (often wrong `rangeStrategy` or an outdated PR from before `bump`).
+    - Choose the Perfective commit verb from the **dependency** SemVer: `Patch` / `Update` / `Upgrade`.
+    - Read release notes (and security advisories) for every intervening version; map breaking changes to this repo.
+    - Semantic updates (e.g. TypeScript majors): adapt `tsconfig*` / source as needed; do **not** edit README/CHANGELOG here.
+    - Allowed follow-up paths on the PR or `cursor`: `package.json`, lockfile, `tsconfig*`, `src/**`, `ROADMAP.adoc`, `AGENTS.md`, `renovate.json`.
+2. **Land the change** — prefer squash-merge on GitHub, or recreate on `cursor` then merge. Do not amend Renovate’s commit on a branch Renovate still owns; add a follow-up commit if needed, then squash.
+3. **Squash commit message** — replace Renovate’s title with Perfective style, e.g. `Update @babel/core to v7.29.6` (no `dependency` prefix, no `[SECURITY]` suffix). Put advisory links in the squash body if useful.
+4. Dependency Dashboard is the backlog; use label `renovate-regenerate` to force Renovate to rebuild a branch.
 
 ## Catch-up order after this package
 

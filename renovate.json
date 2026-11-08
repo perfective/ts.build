@@ -4,6 +4,7 @@
     "ignorePresets": ["group:monorepos", "group:recommended"],
     "labels": ["dependencies"],
     "automerge": false,
+    "rangeStrategy": "bump",
     "dependencyDashboard": true,
     "prConcurrentLimit": 3,
     "prHourlyLimit": 2,
