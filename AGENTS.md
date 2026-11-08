@@ -43,43 +43,71 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
 
 ## Documentation
 
+- All documentation uses [semantic line breaks](https://sembr.org/): break on sense boundaries;
+  keep each line ≤ 120 characters (URLs that cannot wrap may exceed that alone).
 - Consumer docs: `README.adoc` (canonical), short `README.md` pointer.
-  Do **not** edit them on feature/dependency commits. `main` on GitHub must stay consistent with the
-  latest published package, so README changes belong only in the **Publish** commit
+  Do **not** edit them on feature/dependency commits.
+  `main` on GitHub must stay consistent with the latest published package,
+  so README changes belong only in the **Publish** commit
   (together with version bump and `CHANGELOG.adoc`).
-- `AGENTS.md` / `ROADMAP.adoc`: development process only; update with the work that changes them.
-  Do not copy them into `dist/`.
+- `AGENTS.md` / `ROADMAP.adoc` / `specs/**`: development process and design specs;
+  update with the work that changes them. Do not copy them into `dist/`.
 - Remaining doc gaps are listed in `ROADMAP.adoc` (apply to README at release time).
 
 ## Git and releases (this repo)
 
-- Work on the `cursor` branch (maintainer rebases/cherry-picks as needed). Always commit completed work there.
+- Work on the `cursor` branch (maintainer rebases/cherry-picks as needed).
+  Always commit completed work there.
   Never commit to `main`, force-push, tag, release, or `npm publish`.
-- Backports only when needed: remote/local `vX.Y.x` (e.g. `v0.4.x`). CI also runs on those branches.
-- One dependency change per commit. Verbs by **dependency** SemVer: `Patch` / `Update` / `Upgrade`.
-- Changelog: consumer-relevant only (e.g. TypeScript, Prettier, Jest bumps for this package; not pure infra).
-- Package SemVer while on `v0`: bump **minor** for breaking changes; **patch** for non-breaking.
+- Backports only when needed: remote/local `vX.Y.x` (e.g. `v0.4.x`).
+  CI also runs on those branches.
+- One dependency change per commit.
+  Verbs by **dependency** SemVer: `Patch` / `Update` / `Upgrade`.
+- Changelog: consumer-relevant only
+  (e.g. TypeScript, Prettier, Jest bumps for this package; not pure infra).
+- Package SemVer while on `v0`: bump **minor** for breaking changes;
+  **patch** for non-breaking.
   Moving to the next TypeScript line usually opens the next `@perfective/build` version.
-- Maintainer release: `Publish vX.Y.Z` commit (includes `npm update` for peers) → wait CI → signed annotated tag → GitHub Release → publish workflow.
-  Prereleases are unused until ~v1.0 (`next` npm tag remains wired for `prereleased` events).
+- Maintainer release: `Publish vX.Y.Z` commit (includes `npm update` for peers)
+  → wait CI → signed annotated tag → GitHub Release → publish workflow.
+  Prereleases are unused until ~v1.0
+  (`next` npm tag remains wired for `prereleased` events).
 
 ## Renovate (dependency discovery)
 
-Config: `renovate.json`. Renovate opens **one PR per dependency** (no automerge). It does not migrate configs.
-`rangeStrategy` is `bump` so in-range updates also raise the pin in `package.json` (not lockfile-only).
+Config: `renovate.json`.
+Renovate opens **one PR per dependency** (no automerge).
+It does not migrate configs.
+`rangeStrategy` is `bump` so in-range updates also raise the pin in `package.json`
+(not lockfile-only).
 End-state design (controller, agents, squash atomicity): `specs/renovate.adoc`.
 
 ### Handling a Renovate PR
 
 1. **Agent review** (required before merge) — catch policy misses Renovate will not:
-    - Both `package.json` **and** the lockfile move when this repo pins that dependency (direct or peer). Lockfile-only while a pin stays on an older minor/patch is a defect (often wrong `rangeStrategy` or an outdated PR from before `bump`).
-    - Choose the Perfective commit verb from the **dependency** SemVer: `Patch` / `Update` / `Upgrade`.
-    - Read release notes (and security advisories) for every intervening version; map breaking changes to this repo.
-    - Semantic updates (e.g. TypeScript majors): adapt `tsconfig*` / source as needed; do **not** edit README/CHANGELOG here.
-    - Allowed follow-up paths on the PR or `cursor`: `package.json`, lockfile, `tsconfig*`, `src/**`, `ROADMAP.adoc`, `AGENTS.md`, `renovate.json`.
-2. **Land the change** — prefer squash-merge on GitHub, or recreate on `cursor` then merge. Do not amend Renovate’s commit on a branch Renovate still owns; add a follow-up commit if needed, then squash.
-3. **Squash commit message** — replace Renovate’s title with Perfective style, e.g. `Update @babel/core to v7.29.6` (no `dependency` prefix, no `[SECURITY]` suffix). Put advisory links in the squash body if useful.
-4. Dependency Dashboard is the backlog; use label `renovate-regenerate` to force Renovate to rebuild a branch.
+    - Both `package.json` **and** the lockfile move when this repo pins that dependency
+      (direct or peer).
+      Lockfile-only while a pin stays on an older minor/patch is a defect
+      (often wrong `rangeStrategy` or an outdated PR from before `bump`).
+    - Choose the Perfective commit verb from the **dependency** SemVer:
+      `Patch` / `Update` / `Upgrade`.
+    - Read release notes (and security advisories) for every intervening version;
+      map breaking changes to this repo.
+    - Semantic updates (e.g. TypeScript majors): adapt `tsconfig*` / source as needed;
+      do **not** edit README/CHANGELOG here.
+    - Allowed follow-up paths on the PR or `cursor`:
+      `package.json`, lockfile, `tsconfig*`, `src/**`,
+      `ROADMAP.adoc`, `AGENTS.md`, `renovate.json`.
+2. **Land the change** — prefer squash-merge on GitHub,
+   or recreate on `cursor` then merge.
+   Do not amend Renovate’s commit on a branch Renovate still owns;
+   add a follow-up commit if needed, then squash.
+3. **Squash commit message** — replace Renovate’s title with Perfective style,
+   e.g. `Update @babel/core to v7.29.6`
+   (no `dependency` prefix, no `[SECURITY]` suffix).
+   Put advisory links in the squash body if useful.
+4. Dependency Dashboard is the backlog;
+   use label `renovate-regenerate` to force Renovate to rebuild a branch.
 
 ## Catch-up order after this package
 
@@ -91,9 +119,19 @@ End-state design (controller, agents, squash atomicity): `specs/renovate.adoc`.
 
 ## Verifying changes
 
+After every change set, run:
+
+```bash
+npm run lint
+```
+
+Before considering work done, also run:
+
 ```bash
 npm run lint:build
 npm run dist
 ```
 
-There are no tests here yet (tech debt). After `dist`, link `./dist` into a consumer (`ts.common` or `eslint-config`) with `npm link` and run that package’s `lint:build`, `test:build` (100% coverage), and `dist`.
+There are no tests here yet (tech debt).
+After `dist`, link `./dist` into a consumer (`ts.common` or `eslint-config`) with `npm link`
+and run that package’s `lint:build`, `test:build` (100% coverage), and `dist`.
