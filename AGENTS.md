@@ -95,6 +95,12 @@ End-state design (controller, agents, squash atomicity): `specs/renovate.adoc`.
       map breaking changes to this repo.
     - Semantic updates (e.g. TypeScript majors): adapt `tsconfig*` / source as needed;
       do **not** edit README/CHANGELOG here.
+    - **NEEDS HUMAN** must state exactly what a person should verify
+      (versions/notes, config options, decisions) — not a vague “please review”.
+    - **Configuration** section is required for tools with repo config surfaces
+      (Jest, Prettier, TypeScript, ESLint / plugins, Babel, etc.):
+      list note-called-out option changes, which in-repo files apply,
+      and whether this PR already applied them or what is still open.
     - Allowed follow-up paths on the PR or `cursor`:
       `package.json`, lockfile, `tsconfig*`, `src/**`,
       `ROADMAP.adoc`, `AGENTS.md`, `renovate.json`.
@@ -115,7 +121,6 @@ End-state design (controller, agents, squash atomicity): `specs/renovate.adoc`.
 2. `@perfective/common` (re-patch build if needed)
 3. `@perfective/eslint-config` → `eslint-config-angular` → `eslint-config-react`
 4. Apply updated configs back into `ts.common`
-5. `ts.ai` later, after main packages are current
 
 ## Verifying changes
 

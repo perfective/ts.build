@@ -194,10 +194,12 @@ Use only if the review branch itself must also be a single commit.
 == Hosting roadmap
 
 . **Now:** Mend Renovate Community Cloud + manual/Cursor handling of PRs.
-. **Next:** controller as a scheduled workflow in a private ops repo (App token),
-  Cursor Cloud Agents via an adapter.
-. **Later:** self-host Renovate if needed;
-  move the controller to a small service (e.g. GCP) behind the same adapter contract.
+. **Next:** a private Perfective controller
+  (Cursor TypeScript SDK + GitHub API; secrets in a secret store, never in git);
+  start in shadow mode (report + PR comment only).
+. **Later:** handoff mode (App-signed CAS commit), scheduled Actions / webhooks,
+  then optional self-host Renovate or a small service (e.g. GCP)
+  behind the same adapter contract.
 
 
 == Agent review tiers (cost control)
