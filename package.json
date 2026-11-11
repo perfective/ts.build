@@ -60,7 +60,7 @@
     },
     "dependencies": {
         "@asciidoctor/gulp-asciidoctor": "^2.2.5",
-        "del": "^8.0.1",
+        "del": "^9.0.1",
         "glob": "^14.0.4",
         "gulp": "^5.0.1",
         "gulp-babel": "^8.1.0",
