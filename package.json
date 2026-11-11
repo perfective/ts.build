@@ -30,7 +30,7 @@
         "lint:prettier:build": "prettier --check ."
     },
     "peerDependencies": {
-        "@babel/core": "^7.29.13",
+        "@babel/core": "^8.1.0",
         "@types/jest": "^30.0.0",
         "gulp": "^5.0.1",
         "jest": "^30.5.2",
