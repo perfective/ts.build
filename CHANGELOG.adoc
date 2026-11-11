@@ -1,5 +1,16 @@
 = Changelog
 
+== v0.23.0
+
+* Upgraded `typescript` to `6.0.3`.
+* Added `@babel/core` as an optional peer dependency.
+* Upgraded `@babel/core` to `8.1.0`.
+* Updated `prettier` to `3.9.10`.
+* Updated `jest` to `30.5.2`.
+* Patched `ts-jest` to `29.4.15`.
+* Expanded Gulp task reference in the README.
+
+
 == v0.22.0
 
 * Patched `typescript` to `5.9.3`.

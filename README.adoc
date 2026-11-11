@@ -30,7 +30,7 @@ The TypeScript Gulp tasks run compiled output through `gulp-babel`, which requir
 ----
 {
     "devDependencies": {
-        "@babel/core": "^7.28.5",
+        "@babel/core": "^8.1.0",
         "gulp": "^5.0.1",
         "typescript": "~6.0.3"
     }
@@ -214,7 +214,7 @@ Default entry fields: `main: './index.cjs'`, `module: './index.js'`, `types: './
 ----
 {
     "devDependencies": {
-        "prettier": "^3.7.4"
+        "prettier": "^3.9.10"
     }
 }
 ----
@@ -272,8 +272,8 @@ and `lint:prettier:build` to verify the build (to fail if code is not formatted)
 {
     "devDependencies": {
         "@types/jest": "^30.0.0",
-        "jest": "^30.2.0",
-        "ts-jest": "^29.4.6"
+        "jest": "^30.5.2",
+        "ts-jest": "^29.4.15"
     }
 }
 ----
