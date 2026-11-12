@@ -1,7 +1,7 @@
 # @perfective/build (`ts.build`)
 
-Shared Perfective build kit for TypeScript packages under `~/Code/Perfective/typescript`.
-Workspace-wide conventions live in the parent [AGENTS.md](../AGENTS.md); this file covers this package.
+Shared Perfective build kit for TypeScript packages.
+This file is the agent/maintainer guide for this repository.
 
 ## Purpose
 
