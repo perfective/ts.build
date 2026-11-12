@@ -69,9 +69,9 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
   **patch** for non-breaking.
   Moving to the next TypeScript line usually opens the next `@perfective/build` version.
 - Maintainer release: `Publish vX.Y.Z` commit (includes `npm update` for peers)
-  → wait CI → signed annotated tag (`git tag -s vX.Y.Z` + push the tag).
-  Pushing `v*` runs `.github/workflows/github-release.yaml`, which creates the
-  GitHub Release from `CHANGELOG.adoc`; that event triggers `publish.yaml`.
+  → wait CI → signed annotated tag (`git tag -s vX.Y.Z` + push the tag)
+  → create the GitHub Release manually (so `publish.yaml` receives a human
+  `release` event; Actions-created releases with `GITHUB_TOKEN` do not wake it).
   Prereleases are unused until ~v1.0
   (`next` npm tag remains wired for `prereleased` events).
 
