@@ -396,7 +396,7 @@ and `lint:prettier:build` to verify the build (to fail if code is not formatted)
 == Prettier configuration
 
 `@perfective/build/prettier` exports a `config` object to use as the Prettier configuration.
-It lists every option explicitly (including defaults),
+It lists every formatting option explicitly (including defaults),
 so a Prettier upgrade that changes a default does not silently reformat the project.
 
 The suggested `.prettierignore` excludes JavaScript and TypeScript files:
@@ -414,7 +414,8 @@ A value that spans the "Value" and "Default" columns matches the Prettier defaul
 |`printWidth`
 |`120`
 |`80`
-|Wraps lines longer than 120 characters.
+|Tries to keep lines within 120 characters
+(long strings, URLs, and some syntax can still exceed it).
 
 |`tabWidth`
 |`4`
@@ -445,7 +446,7 @@ A value that spans the "Value" and "Default" columns matches the Prettier defaul
 |`quoteProps`
 |`'consistent'`
 |`'as-needed'`
-|Quotes either all or none of the object properties.
+|Quotes all properties of an object if at least one property requires quotes.
 
 |`trailingComma`
 2+|`'all'`
@@ -476,12 +477,13 @@ A value that spans the "Value" and "Default" columns matches the Prettier defaul
 |`bracketSameLine`
 |`true`
 |`false`
-|Puts the `>` of a multi-line HTML, JSX, or Vue element at the end of the last line.
+|Puts the `>` of a multi-line HTML, Angular, JSX, or Vue element at the end of the last line.
 
 |`singleAttributePerLine`
 |`true`
 |`false`
-|Puts each HTML, JSX, or Vue attribute on its own line when the element wraps.
+|Puts each attribute on its own line when an HTML, Angular, JSX, or Vue element has more than one attribute
+(even if the opening tag fits within `printWidth`).
 
 |`htmlWhitespaceSensitivity`
 |`'strict'`
@@ -509,6 +511,10 @@ A value that spans the "Value" and "Default" columns matches the Prettier defaul
 |`requirePragma`
 2+|`false`
 |Formats files without requiring a `@format` pragma.
+
+|`checkIgnorePragma`
+2+|`false`
+|Formats files even if their first docblock contains a `@noprettier` or `@noformat` pragma.
 |===
 
 === Overriding options
