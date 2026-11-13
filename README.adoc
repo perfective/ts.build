@@ -477,7 +477,10 @@ A value that spans the "Value" and "Default" columns matches the Prettier defaul
 |`bracketSameLine`
 |`true`
 |`false`
-|Puts the `>` of a multi-line HTML, Angular, JSX, or Vue element at the end of the last line.
+|Puts the `>` of a multi-line element at the end of its last attribute line.
+In HTML, Angular, and Vue, this applies only to empty elements:
+with `htmlWhitespaceSensitivity: 'strict'`, an element that contains text keeps `>` on the following line.
+In JSX, it applies to elements with children, but not to self-closing tags (`/>` stays on its own line).
 
 |`singleAttributePerLine`
 |`true`
