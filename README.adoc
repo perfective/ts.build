@@ -355,6 +355,8 @@ import { config } from '@perfective/build/prettier';
 export default config;
 ----
 +
+See <<prettier-configuration>> for what the shared configuration sets and how to override it.
++
 . Setup `.prettierignore`:
 +
 [source,ignore]
@@ -388,6 +390,159 @@ dist
 +
 Use `lint:prettier` during development (to fix code automatically)
 and `lint:prettier:build` to verify the build (to fail if code is not formatted).
+
+
+[#prettier-configuration]
+== Prettier configuration
+
+`@perfective/build/prettier` exports a `config` object to use as the Prettier configuration.
+It lists every formatting option explicitly (including defaults),
+so a Prettier upgrade that changes a default does not silently reformat the project.
+
+The suggested `.prettierignore` excludes JavaScript and TypeScript files:
+they are expected to be formatted by ESLint (for example, with `@perfective/eslint-config`),
+so Prettier formats the remaining files (JSON, YAML, Markdown, HTML, CSS, etc.).
+
+=== Options
+
+A value that spans the "Value" and "Default" columns matches the Prettier default.
+
+[cols="2,1,1,3"]
+|===
+|Option |Value |Default |Effect
+
+|`printWidth`
+|`120`
+|`80`
+|Tries to keep lines within 120 characters
+(long strings, URLs, and some syntax can still exceed it).
+
+|`tabWidth`
+|`4`
+|`2`
+|Indents with 4 spaces.
+
+|`useTabs`
+2+|`false`
+|Indents with spaces.
+
+|`endOfLine`
+2+|`'lf'`
+|Uses line feed (`\n`) line endings.
+
+|`semi`
+2+|`true`
+|Adds semicolons at the end of statements.
+
+|`singleQuote`
+|`true`
+|`false`
+|Uses single quotes (except in JSX attributes, see `jsxSingleQuote`).
+
+|`jsxSingleQuote`
+2+|`false`
+|Uses double quotes in JSX attributes.
+
+|`quoteProps`
+|`'consistent'`
+|`'as-needed'`
+|Quotes all properties of an object if at least one property requires quotes.
+
+|`trailingComma`
+2+|`'all'`
+|Adds trailing commas wherever possible (including function parameters and arguments).
+
+|`bracketSpacing`
+2+|`true`
+|Adds spaces between braces in object literals (`{ a: 1 }`).
+
+|`objectWrap`
+2+|`'preserve'`
+|Keeps an object multi-line if there is a newline after its opening brace.
+
+|`arrowParens`
+|`'avoid'`
+|`'always'`
+|Omits parentheses around a single arrow function parameter (`x => x`).
+
+|`experimentalTernaries`
+2+|`false`
+|Formats nested ternaries with the default (non-experimental) style.
+
+|`experimentalOperatorPosition`
+|`'start'`
+|`'end'`
+|Puts binary operators at the start of a wrapped line.
+
+|`bracketSameLine`
+|`true`
+|`false`
+|Puts the `>` of a multi-line element at the end of its last attribute line.
+In HTML, Angular, and Vue, this applies to empty, whitespace-only, void, and self-closing elements
+(e.g., `<img>`, `<input>`, `<my-cmp />`);
+with `htmlWhitespaceSensitivity: 'strict'`, an element with other content (text or child elements)
+keeps `>` on the following line.
+In JSX, it applies to every element that is not self-closing (`/>` stays on its own line).
+
+|`singleAttributePerLine`
+|`true`
+|`false`
+|Puts each attribute on its own line when an HTML, Angular, JSX, or Vue element has more than one attribute
+(even if the opening tag fits within `printWidth`).
+
+|`htmlWhitespaceSensitivity`
+|`'strict'`
+|`'css'`
+|Treats whitespace around all HTML elements as significant.
+
+|`vueIndentScriptAndStyle`
+|`true`
+|`false`
+|Indents the contents of `<script>` and `<style>` tags in Vue files.
+
+|`proseWrap`
+2+|`'preserve'`
+|Keeps Markdown line breaks as written
+(compatible with https://sembr.org/[semantic line breaks]).
+
+|`embeddedLanguageFormatting`
+2+|`'auto'`
+|Formats embedded code (e.g., CSS in JS or code blocks in Markdown) when Prettier recognizes it.
+
+|`insertPragma`
+2+|`false`
+|Does not insert a `@format` pragma into formatted files.
+
+|`requirePragma`
+2+|`false`
+|Formats files without requiring a `@format` pragma.
+
+|`checkIgnorePragma`
+2+|`false`
+|Formats files even if their first docblock contains a `@noprettier` or `@noformat` pragma.
+|===
+
+=== Overriding options
+
+Spread the shared `config` and add options or
+https://prettier.io/docs/configuration#configuration-overrides[`overrides`] for specific files:
+
+[source,js]
+----
+import { config } from '@perfective/build/prettier';
+
+export default {
+    ...config,
+    overrides: [
+        {
+            files: '*.md',
+            options: {
+                proseWrap: 'always',
+            },
+        },
+    ],
+};
+----
 
 
 == Setup Jest
