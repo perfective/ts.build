@@ -41,6 +41,25 @@ Self-build does **not** run `typescript.esmBuild` / `cjsBuild`; those APIs are f
 Default TS project file: `./tsconfig.build.json`. Default output: `./dist`.
 Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `module` matches the emit target.
 
+### How `dist/` exports are derived
+
+- `subPackageJson` globs `dist/*/index.js` and writes `dist/<dir>/package.json` (`name: <scope>/<dir>`).
+- `packageJson` then globs `dist/*/package.json` to build subpath `exports` (`./<dir>` → `./<dir>/index.*`).
+  So **subpath exports come from the top-level directory layout**,
+  and `subPackageJson` must run before `packageJson`.
+- `packageJson` defaults: `main: ./index.cjs`, `module: ./index.js`, `types: ./index.d.ts`;
+  strips `scripts`/`devDependencies`; third argument adds manual exports
+  (this repo uses it for `./tsconfig.strict.json`).
+- This package’s own `require` export conditions point to ES modules (no CJS output for itself).
+
+### Babel plugins
+
+- `babelPluginImportExtension(ext = 'mjs')` is a factory (consumers pass `'js'`);
+  it checks the filesystem relative to the source file to choose `./x.<ext>` vs `./x/index.<ext>`.
+- `babelPluginRequireExtension` is used directly (not a factory);
+  it only handles `const x = require('./y')` (see `ROADMAP.adoc` known limitations).
+- Consumers wire both in their own `babel.config.js`; `esmBuild`/`cjsBuild` just pipe through `gulp-babel`.
+
 ## Documentation
 
 - All documentation uses [semantic line breaks](https://sembr.org/): break on sense boundaries;
@@ -61,8 +80,15 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
   Never commit to `main`, force-push, tag, release, or `npm publish`.
 - Backports only when needed: remote/local `vX.Y.x` (e.g. `v0.4.x`).
   CI also runs on those branches.
-- One dependency change per commit.
-  Verbs by **dependency** SemVer: `Patch` / `Update` / `Upgrade`.
+- Commit titles: short imperative sentence, no trailing period, usually no body
+  (e.g. `Add Renovate config for dependency updates`).
+- One dependency change per commit, titled `<Verb> <package> to v<X.Y.Z>`.
+  Verbs by **dependency** SemVer: `Patch` (patch) / `Update` (minor) / `Upgrade` (major).
+  Squash-merged PRs keep the `(#N)` suffix GitHub adds.
+- `Publish vX.Y.Z` commit touches only `package.json` (version), `package-lock.json` (`npm update`),
+  `CHANGELOG.adoc`, and `README.adoc`.
+- `CHANGELOG.adoc`: newest `== vX.Y.Z` first, two blank lines between versions,
+  past-tense bullets mirroring commit verbs (e.g. ``* Patched `ts-jest` to `29.4.15`.``).
 - Changelog: consumer-relevant only
   (e.g. TypeScript, Prettier, Jest bumps for this package; not pure infra).
 - Package SemVer while on `v0`: bump **minor** for breaking changes;
@@ -138,6 +164,11 @@ Before considering work done, also run:
 npm run lint:build
 npm run dist
 ```
+
+`lint` runs `prettier --write .` (fixes files); `lint:build` is the CI check (`prettier --check .`).
+`dist` runs the default Gulp task; individual tasks: `npx gulp clean`, `npx gulp documentation`.
+CI (`.github/workflows/ci.yaml`) runs `npm ci`, `lint:build`, `dist` on Node 22.x/24.x/26.x
+for PRs and pushes to `main` / `vX.Y.x`.
 
 There are no tests here yet (tech debt).
 After `dist`, link `./dist` into a consumer (`ts.common` or `eslint-config`) with `npm link`
