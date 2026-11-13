@@ -355,6 +355,8 @@ import { config } from '@perfective/build/prettier';
 export default config;
 ----
 +
+See <<prettier-configuration>> for what the shared configuration sets and how to override it.
++
 . Setup `.prettierignore`:
 +
 [source,ignore]
@@ -388,6 +390,107 @@ dist
 +
 Use `lint:prettier` during development (to fix code automatically)
 and `lint:prettier:build` to verify the build (to fail if code is not formatted).
+
+
+[#prettier-configuration]
+== Prettier configuration
+
+`@perfective/build/prettier` exports a `config` object to use as the Prettier configuration.
+It lists every option explicitly (including defaults),
+so a Prettier upgrade that changes a default does not silently reformat the project.
+
+The suggested `.prettierignore` excludes JavaScript and TypeScript files:
+they are expected to be formatted by ESLint (for example, with `@perfective/eslint-config`),
+so Prettier formats the remaining files (JSON, YAML, Markdown, HTML, CSS, etc.).
+
+=== Options that differ from the Prettier defaults
+
+[cols="2,1,1,3"]
+|===
+|Option |Value |Default |Effect
+
+|`printWidth`
+|`120`
+|`80`
+|Wraps lines longer than 120 characters.
+
+|`tabWidth`
+|`4`
+|`2`
+|Indents with 4 spaces.
+
+|`singleQuote`
+|`true`
+|`false`
+|Uses single quotes (except in JSX attributes, see `jsxSingleQuote`).
+
+|`quoteProps`
+|`'consistent'`
+|`'as-needed'`
+|Quotes either all or none of the object properties.
+
+|`arrowParens`
+|`'avoid'`
+|`'always'`
+|Omits parentheses around a single arrow function parameter (`x => x`).
+
+|`bracketSameLine`
+|`true`
+|`false`
+|Puts the `>` of a multi-line HTML, JSX, or Vue element at the end of the last line.
+
+|`singleAttributePerLine`
+|`true`
+|`false`
+|Puts each HTML, JSX, or Vue attribute on its own line when the element wraps.
+
+|`htmlWhitespaceSensitivity`
+|`'strict'`
+|`'css'`
+|Treats whitespace around all HTML elements as significant.
+
+|`vueIndentScriptAndStyle`
+|`true`
+|`false`
+|Indents the contents of `<script>` and `<style>` tags in Vue files.
+
+|`experimentalOperatorPosition`
+|`'start'`
+|`'end'`
+|Puts binary operators at the start of a wrapped line.
+|===
+
+=== Options that match the Prettier defaults
+
+* `semi: true`, `trailingComma: 'all'`, `bracketSpacing: true`, `objectWrap: 'preserve'`.
+* `useTabs: false`, `endOfLine: 'lf'`.
+* `jsxSingleQuote: false`, `experimentalTernaries: false`.
+* `proseWrap: 'preserve'` — Markdown line breaks are kept as written
+(compatible with https://sembr.org/[semantic line breaks]).
+* `embeddedLanguageFormatting: 'auto'`.
+* `insertPragma: false`, `requirePragma: false`.
+
+=== Overriding options
+
+Spread the shared `config` and add options or
+https://prettier.io/docs/configuration#configuration-overrides[`overrides`] for specific files:
+
+[source,js]
+----
+import { config } from '@perfective/build/prettier';
+
+export default {
+    ...config,
+    overrides: [
+        {
+            files: '*.md',
+            options: {
+                proseWrap: 'always',
+            },
+        },
+    ],
+};
+----
 
 
 == Setup Jest
