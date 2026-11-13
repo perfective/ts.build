@@ -583,3 +583,100 @@ export default config;
 +
 Use `test` for development testing
 and `test:build` to test during the build (and fail if test coverage is not sufficient).
++
+See <<jest-configuration>> for what the shared configuration sets and how to override it.
+
+
+[#jest-configuration]
+== Jest configuration
+
+`@perfective/build/jest` exports a `config` object to use as the Jest configuration.
+It runs TypeScript tests from the `src` directory with `ts-jest`
+and requires 100% test coverage when coverage is collected.
+
+=== Options
+
+A value that spans the "Value" and "Default" columns matches the Jest default.
+
+[cols="2,2,2,3"]
+|===
+|Option |Value |Default |Effect
+
+|`rootDir`
+|`'./src'`
+|The directory of the configuration file
+|Searches for tests and modules only in `src`
+(relative to the configuration file).
+Files outside `src` are not instrumented for coverage, even when a test imports them.
+Prevents the "jest-haste-map: Haste module naming collision" error
+when `package.json` is copied into `dist`.
+
+|`preset`
+|`'ts-jest'`
+|None
+|Applies the `ts-jest` preset.
+
+|`transform`
+|`'^.+\\.tsx?$'` with `ts-jest`
+|`'\\.[jt]sx?$'` with `babel-jest`
+|Compiles `.ts` and `.tsx` files with `ts-jest` using `./tsconfig.json`
+(resolved from the directory Jest runs in, not from `rootDir`).
+JavaScript files are not transformed.
+
+|`testEnvironment`
+2+|`'node'`
+|Runs tests in Node.js (without a DOM).
+
+|`testPathIgnorePatterns`
+|`['/node_modules/', '/dist/']`
+|`['/node_modules/']`
+|Ignores tests in `node_modules` and `dist`.
+
+|`errorOnDeprecated`
+|`true`
+|`false`
+|Throws an error when a test calls a deprecated Jest API.
+
+|`collectCoverage`
+2+|`false`
+|Collects coverage only when requested (e.g., `jest --collectCoverage`).
+
+|`coverageReporters`
+|`['text']`
+|`['clover', 'json', 'lcov', 'text']`
+|Prints the coverage summary to the console and does not write coverage files.
+
+|`coverageThreshold`
+|100% `global` statements, branches, functions, and lines
+|None
+|Fails the run if coverage is below 100%
+(only when coverage is collected, e.g., `jest --collectCoverage`).
+Coverage is measured only for files loaded by tests (`collectCoverageFrom` is not set):
+a file without its own spec still counts when another test imports it,
+but a file that no test loads does not lower coverage.
+
+|`verbose`
+|`false`
+|`false` (`true` when one test file runs)
+|Does not report each individual test result,
+even when Jest runs a single test file.
+|===
+
+=== Overriding options
+
+Spread the shared `config` and add or replace options:
+
+[source,js]
+----
+import { config } from '@perfective/build/jest';
+
+export default {
+    ...config,
+    testEnvironment: 'jsdom', // <.>
+    collectCoverageFrom: ['**/*.{ts,tsx,mts,cts}', '!**/*.d.{ts,mts,cts}'], // <.>
+};
+----
+<.> Requires the `jest-environment-jsdom` package.
+<.> Measures coverage for every TypeScript source file in `rootDir`, including files that no test loads.
+Declaration files are excluded explicitly;
+test files are already excluded by `testMatch`.
