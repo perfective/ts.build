@@ -403,7 +403,9 @@ The suggested `.prettierignore` excludes JavaScript and TypeScript files:
 they are expected to be formatted by ESLint (for example, with `@perfective/eslint-config`),
 so Prettier formats the remaining files (JSON, YAML, Markdown, HTML, CSS, etc.).
 
-=== Options that differ from the Prettier defaults
+=== Options
+
+A value that spans the "Value" and "Default" columns matches the Prettier default.
 
 [cols="2,1,1,3"]
 |===
@@ -419,20 +421,57 @@ so Prettier formats the remaining files (JSON, YAML, Markdown, HTML, CSS, etc.).
 |`2`
 |Indents with 4 spaces.
 
+|`useTabs`
+2+|`false`
+|Indents with spaces.
+
+|`endOfLine`
+2+|`'lf'`
+|Uses line feed (`\n`) line endings.
+
+|`semi`
+2+|`true`
+|Adds semicolons at the end of statements.
+
 |`singleQuote`
 |`true`
 |`false`
 |Uses single quotes (except in JSX attributes, see `jsxSingleQuote`).
+
+|`jsxSingleQuote`
+2+|`false`
+|Uses double quotes in JSX attributes.
 
 |`quoteProps`
 |`'consistent'`
 |`'as-needed'`
 |Quotes either all or none of the object properties.
 
+|`trailingComma`
+2+|`'all'`
+|Adds trailing commas wherever possible (including function parameters and arguments).
+
+|`bracketSpacing`
+2+|`true`
+|Adds spaces between braces in object literals (`{ a: 1 }`).
+
+|`objectWrap`
+2+|`'preserve'`
+|Keeps an object multi-line if there is a newline after its opening brace.
+
 |`arrowParens`
 |`'avoid'`
 |`'always'`
 |Omits parentheses around a single arrow function parameter (`x => x`).
+
+|`experimentalTernaries`
+2+|`false`
+|Formats nested ternaries with the default (non-experimental) style.
+
+|`experimentalOperatorPosition`
+|`'start'`
+|`'end'`
+|Puts binary operators at the start of a wrapped line.
 
 |`bracketSameLine`
 |`true`
@@ -454,21 +493,23 @@ so Prettier formats the remaining files (JSON, YAML, Markdown, HTML, CSS, etc.).
 |`false`
 |Indents the contents of `<script>` and `<style>` tags in Vue files.
 
-|`experimentalOperatorPosition`
-|`'start'`
-|`'end'`
-|Puts binary operators at the start of a wrapped line.
-|===
-
-=== Options that match the Prettier defaults
-
-* `semi: true`, `trailingComma: 'all'`, `bracketSpacing: true`, `objectWrap: 'preserve'`.
-* `useTabs: false`, `endOfLine: 'lf'`.
-* `jsxSingleQuote: false`, `experimentalTernaries: false`.
-* `proseWrap: 'preserve'` — Markdown line breaks are kept as written
+|`proseWrap`
+2+|`'preserve'`
+|Keeps Markdown line breaks as written
 (compatible with https://sembr.org/[semantic line breaks]).
-* `embeddedLanguageFormatting: 'auto'`.
-* `insertPragma: false`, `requirePragma: false`.
+
+|`embeddedLanguageFormatting`
+2+|`'auto'`
+|Formats embedded code (e.g., CSS in JS or code blocks in Markdown) when Prettier recognizes it.
+
+|`insertPragma`
+2+|`false`
+|Does not insert a `@format` pragma into formatted files.
+
+|`requirePragma`
+2+|`false`
+|Formats files without requiring a `@format` pragma.
+|===
 
 === Overriding options
 
