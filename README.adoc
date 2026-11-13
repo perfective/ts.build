@@ -53,6 +53,7 @@ The TypeScript Gulp tasks run compiled output through `gulp-babel`, which requir
 ----
 +
 Add a `tsconfig.build.json` used by the Gulp TypeScript tasks (defaults to `./tsconfig.build.json`).
+See <<typescript-configuration>> for what the base configuration sets and what to override.
 +
 . Add the `RequireExtension` and `ImportExtension` plugins to your `babel.config.js`.
 `RequireExtension` appends the `.cjs` extension to relative paths in `require()` statements.
@@ -115,6 +116,132 @@ build.packageJson.packageJson({
     types: './index.d.ts',
 }),
 ----
+
+
+[#typescript-configuration]
+== TypeScript configuration
+
+`@perfective/build/tsconfig.strict.json` is a base configuration to `extends` from.
+It lists every relevant `compilerOptions` value explicitly (including defaults),
+so a TypeScript upgrade that changes a default does not silently change the build.
+It sets no `include`, `exclude`, `files`, `rootDir`, `outDir`, `lib`, or `types`:
+those depend on the project layout and runtime.
+
+=== Project files
+
+A typical project has two configuration files:
+
+`tsconfig.json`::
+Extends `@perfective/build/tsconfig.strict.json`.
+Used by the IDE, ESLint, and Jest (`ts-jest`), so it includes tests.
++
+[source,json]
+----
+{
+    "extends": "@perfective/build/tsconfig.strict.json",
+    "compilerOptions": {
+        "rootDir": "./src"
+    },
+    "exclude": ["dist"]
+}
+----
+
+`tsconfig.build.json`::
+Extends `./tsconfig.json` and is used by the Gulp TypeScript tasks.
+Excludes tests and test helpers, and turns off output the published package does not need.
++
+[source,json]
+----
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "dist",
+        "rootDir": "src",
+        "declaration": false, // <.>
+        "declarationMap": false,
+        "sourceMap": false
+    },
+    "exclude": ["dist", "src/**/*.spec.ts"]
+}
+----
+<.> `esmBuild()` and `cjsBuild()` do not need declarations;
+`tsDeclarations()` forces `declaration: true` for its own emit.
+
+=== Options overridden by the Gulp tasks
+
+The Gulp TypeScript tasks pass extra `compilerOptions` on top of the project configuration,
+so the `module` value in `tsconfig.strict.json` does not define the published module format.
+
+[cols="1,3"]
+|===
+|Task |Overrides
+
+|`esmBuild()`
+|`module: esnext`, `allowSyntheticDefaultImports: true`
+
+|`cjsBuild()`
+|`module: commonjs`, `esModuleInterop: true`
+
+|`tsDeclarations()`
+|`module: esnext`, `declaration: true`, `emitDeclarationOnly: true`, `removeComments: false`
+
+|`tsBuild()`
+|None (uses the project configuration as is)
+|===
+
+=== Strictness
+
+`strict` is enabled, and each option it implies is also listed explicitly:
+`alwaysStrict`, `noImplicitAny`, `noImplicitThis`, `strictBindCallApply`, `strictBuiltinIteratorReturn`,
+`strictFunctionTypes`, `strictNullChecks`, `strictPropertyInitialization`, `useUnknownInCatchVariables`.
+
+Additional checks beyond `strict`:
+
+* `exactOptionalPropertyTypes` — an optional property does not accept an explicit `undefined`
+unless its type includes `undefined`.
+* `noFallthroughCasesInSwitch`, `noImplicitOverride`, `noImplicitReturns`.
+* `noPropertyAccessFromIndexSignature` — index signature properties require bracket access.
+* `noUncheckedSideEffectImports` — side-effect imports (`import './x'`) must resolve.
+* `noUnusedLocals`, `noUnusedParameters`.
+* `allowUnreachableCode: false`, `allowUnusedLabels: false` — report errors instead of warnings.
+* `forceConsistentCasingInFileNames`.
+
+`noUncheckedIndexedAccess` is disabled.
+
+=== Modules and interoperability
+
+* `module: commonjs` and `moduleResolution: bundler`.
+The Gulp tasks override `module` (see above);
+`bundler` resolution allows extensionless relative imports,
+and the Babel plugins add the extensions in the emitted files.
+* `esModuleInterop` and `allowSyntheticDefaultImports` are enabled.
+* `isolatedModules`, `resolveJsonModule`, `allowJs`, `checkJs`, `allowArbitraryExtensions`,
+`allowImportingTsExtensions`, and `allowUmdGlobalAccess` are disabled.
+* `importsNotUsedAsValues: remove` is deprecated and matches the default behavior
+(imports used only as types are dropped from the output).
+
+=== Language and emit
+
+* `target: es2015` (override it to use newer syntax and libraries, e.g. `es2017`).
+* `experimentalDecorators` is enabled and `emitDecoratorMetadata` is disabled.
+* `useDefineForClassFields: false` keeps class fields as constructor assignments.
+* `declaration`, `declarationMap`, and `sourceMap` are enabled.
+* `removeComments` is enabled (`tsDeclarations()` keeps comments in `.d.ts` files).
+* `noEmitOnError` is enabled; `importHelpers` and `noEmitHelpers` are disabled (helpers are inlined).
+* `preserveConstEnums` is enabled; `stripInternal` is disabled.
+* `newLine: lf`, `emitBOM: false`.
+
+=== Project and diagnostics
+
+* `incremental` is enabled (add `*.tsbuildinfo` to `clean` and `.gitignore`).
+* `skipLibCheck` is disabled, so dependency declaration files are type-checked.
+* `noErrorTruncation` and `pretty` are enabled.
+
+=== Common overrides
+
+* `rootDir`, `outDir`, `include`/`exclude` — always project-specific.
+* `target` and `lib` — for newer language features (e.g. `"target": "es2017"`).
+* `types` — to limit global types (e.g. `["node"]` or `["jest"]`).
 
 
 == Gulp tasks
