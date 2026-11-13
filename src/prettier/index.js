@@ -2,6 +2,7 @@ export const config = {
     arrowParens: 'avoid',
     bracketSameLine: true,
     bracketSpacing: true,
+    checkIgnorePragma: false,
     embeddedLanguageFormatting: 'auto',
     endOfLine: 'lf',
     experimentalOperatorPosition: 'start',
