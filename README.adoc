@@ -289,7 +289,8 @@ so `'./dir'` becomes `'./dir.js'`.
 The plugin itself (not a factory).
 It rewrites the string literal path of a `require()` call that initializes a variable
 by appending `.cjs` (e.g., `const a = require('./a')` becomes `const a = require('./a.cjs')`).
-Other `require()` calls fail the build (see <<_limitations>>).
+Other `require()` calls with a string literal path fail the build (see <<_limitations>>);
+calls with a non-literal argument (e.g., `require(name)`) are left unchanged.
 It does not check for directories,
 so `const dir = require('./dir')` becomes `const dir = require('./dir.cjs')`.
 
@@ -312,6 +313,8 @@ so TypeScript emits such calls in every CommonJS build for:
 an assignment that fails even without `esModuleInterop`);
 ** side-effect imports (`require('./a')`);
 ** dynamic `import()`.
+* `babelPluginRequireExtension` also fails the build on a `require()` call without arguments
+("Cannot read properties of undefined (reading 'isStringLiteral')").
 * Dynamic `import()` expressions in ES modules are not changed.
 * Other file extensions are not recognized: `'./data.json'` becomes `'./data.json.js'` in the ES module output
 (with `'js'`) and `'./data.json.cjs'` in the CommonJS output.
