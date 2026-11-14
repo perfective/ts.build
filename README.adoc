@@ -74,6 +74,8 @@ export default {
 ----
 <.> Override the default extension (`mjs`).
 +
+See <<babel-plugins>> for what the plugins rewrite and their limitations.
++
 . Create a `gulpfile.js` that emits ESM, CommonJS, and declarations into the same `dist/` tree:
 +
 [source,javascript]
@@ -242,6 +244,65 @@ and the Babel plugins add the extensions in the emitted files.
 * `rootDir`, `outDir`, `include`/`exclude` — always project-specific.
 * `target` and `lib` — for newer language features (e.g. `"target": "es2017"`).
 * `types` — to limit global types (e.g. `["node"]` or `["jest"]`).
+
+
+[#babel-plugins]
+== Babel plugins
+
+`@perfective/build/babel` exports two Babel plugins
+that add file extensions to relative module paths in the compiled JavaScript,
+as Node.js requires for ES modules and for the `.cjs` files emitted by `cjsBuild()`.
+TypeScript sources keep extensionless imports (allowed by `moduleResolution: bundler`).
+
+The plugins take effect only when listed in the project `babel.config.js`
+(see <<_building_a_typescript_project>>):
+`esmBuild()` and `cjsBuild()` run their output through `gulp-babel`, which loads that configuration.
+Both plugins can be listed together:
+each build has only the syntax one of them rewrites.
+
+A path is treated as relative when it contains `./` or `../`
+and is left unchanged when it already ends with `.js`, `.cjs`, or `.mjs`.
+Package imports (e.g., `'@perfective/common'`) are not changed.
+
+=== `babelPluginImportExtension(extension?)`
+
+A factory that returns the plugin.
+`extension` defaults to `'mjs'`;
+pass `'js'` to match the `.js` files emitted by `esmBuild()`.
+
+It rewrites the source path of `import` and `export ... from` declarations
+in files whose name ends with `.js` or `.mjs`:
+
+* `'./a'` becomes `'./a.js'`.
+* `'./dir'` becomes `'./dir/index.js'` if `./dir` is an existing directory.
+
+The directory is looked up on the file system relative to the file Babel compiles.
+`gulp-typescript` reports that file in the source directory,
+or in `outDir` when the configuration sets it.
+In the latter case, the directory is looked up in the output directory, which may not exist yet,
+so `'./dir'` becomes `'./dir.js'`.
+
+=== `babelPluginRequireExtension`
+
+The plugin itself (not a factory).
+It rewrites the first argument of `require()` calls with a string literal path
+by appending `.cjs` (e.g., `require('./a')` becomes `require('./a.cjs')`).
+It does not check for directories, so `require('./dir')` becomes `require('./dir.cjs')`.
+
+=== Limitations
+
+* Import directories by their index file (`'./dir/index'` instead of `'./dir'`):
+the CommonJS output never resolves directories,
+and the ES module output does not resolve them when `outDir` is set.
+* `babelPluginRequireExtension` supports only a `require()` call that initializes a variable
+(e.g., `const a_1 = require('./a')`).
+Any other `require()` call with a string literal argument (including a package path) fails the build
+with "Cannot read properties of undefined (reading 'arguments')".
+TypeScript emits such calls for default imports and namespace imports with `esModuleInterop`
+(e.g., `__importDefault(require('./a'))`), `export * from` (`__exportStar(require('./a'), exports)`),
+side-effect imports (`require('./a')`), and dynamic `import()`.
+* Dynamic `import()` expressions in ES modules are not changed.
+* Other file extensions are not recognized: `'./data.json'` becomes `'./data.json.js'`.
 
 
 == Gulp tasks
