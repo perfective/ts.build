@@ -287,9 +287,11 @@ so `'./dir'` becomes `'./dir.js'`.
 === `babelPluginRequireExtension`
 
 The plugin itself (not a factory).
-It rewrites the first argument of `require()` calls with a string literal path
-by appending `.cjs` (e.g., `require('./a')` becomes `require('./a.cjs')`).
-It does not check for directories, so `require('./dir')` becomes `require('./dir.cjs')`.
+It rewrites the string literal path of a `require()` call that initializes a variable
+by appending `.cjs` (e.g., `const a = require('./a')` becomes `const a = require('./a.cjs')`).
+Other `require()` calls fail the build (see <<_limitations>>).
+It does not check for directories,
+so `const dir = require('./dir')` becomes `const dir = require('./dir.cjs')`.
 
 === Limitations
 

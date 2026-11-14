@@ -65,7 +65,8 @@ so CommonJS output does not support default or namespace imports, `export * from
 side-effect imports, or dynamic `import()`.
 `export * as ns from` emits an assignment (`exports.ns = require('./y')`)
 and fails even without `esModuleInterop`.
-* `babelPluginRequireExtension` does not resolve directories (`require('./dir')` becomes `require('./dir.cjs')`).
+* `babelPluginRequireExtension` does not resolve directories
+(`const dir = require('./dir')` becomes `const dir = require('./dir.cjs')`).
 * `babelPluginImportExtension` resolves directories relative to the compiled file path,
 which `gulp-typescript` places in `outDir` when it is set (as in the documented `tsconfig.build.json`),
 so on a clean build `'./dir'` becomes `'./dir.js'`.
