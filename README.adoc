@@ -271,7 +271,9 @@ A factory that returns the plugin.
 pass `'js'` to match the `.js` files emitted by `esmBuild()`.
 
 It rewrites the source path of `import` and `export ... from` declarations
-in files whose name ends with `.js` or `.mjs`:
+in files whose name ends with `.js` or `.mjs`.
+With `babelPluginImportExtension('js')`, as in the setup above
+(the default `'mjs'` produces `'./a.mjs'` and `'./dir/index.mjs'` instead):
 
 * `'./a'` becomes `'./a.js'`.
 * `'./dir'` becomes `'./dir/index.js'` if `./dir` is an existing directory.
@@ -295,14 +297,22 @@ It does not check for directories, so `require('./dir')` becomes `require('./dir
 the CommonJS output never resolves directories,
 and the ES module output does not resolve them when `outDir` is set.
 * `babelPluginRequireExtension` supports only a `require()` call that initializes a variable
-(e.g., `const a_1 = require('./a')`).
+(`const`, `let`, or `var`, e.g., `const a_1 = require('./a')`).
+TypeScript emits this form for named imports and for `export { x } from` (`var a_1 = require('./a')`).
 Any other `require()` call with a string literal argument (including a package path) fails the build
 with "Cannot read properties of undefined (reading 'arguments')".
-TypeScript emits such calls for default imports and namespace imports with `esModuleInterop`
-(e.g., `__importDefault(require('./a'))`), `export * from` (`__exportStar(require('./a'), exports)`),
-side-effect imports (`require('./a')`), and dynamic `import()`.
+`cjsBuild()` always sets `esModuleInterop: true`,
+so TypeScript emits such calls in every CommonJS build for:
+** default imports (`__importDefault(require('./a'))`);
+** namespace imports (`__importStar(require('./a'))`);
+** `export * from` (`__exportStar(require('./a'), exports)`);
+** `export * as ns from` (`exports.ns = __importStar(require('./a'))`,
+an assignment that fails even without `esModuleInterop`);
+** side-effect imports (`require('./a')`);
+** dynamic `import()`.
 * Dynamic `import()` expressions in ES modules are not changed.
-* Other file extensions are not recognized: `'./data.json'` becomes `'./data.json.js'`.
+* Other file extensions are not recognized: `'./data.json'` becomes `'./data.json.js'` in the ES module output
+(with `'js'`) and `'./data.json.cjs'` in the CommonJS output.
 
 
 == Gulp tasks
