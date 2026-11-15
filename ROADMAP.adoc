@@ -58,5 +58,16 @@ Prefer a modern baseline such as `NodeNext` once consumers are accounted for.
 
 === Known limitations
 
-* `babelPluginRequireExtension` only handles `const x = require('./y')` declarations
-and is likely to fail on `require()` calls wrapped in other calls (e.g., `__importDefault(require('./y'))`).
+* `babelPluginRequireExtension` only handles `require()` calls that initialize a variable
+(`const`, `let`, or `var`, e.g., `var x = require('./y')`)
+and fails the build on any other `require()` call with a string literal
+(e.g., `__importDefault(require('./y'))`) and on `require()` without arguments,
+so CommonJS output does not support default or namespace imports, `export * from`, `export * as ns from`,
+side-effect imports, or dynamic `import()`.
+`export * as ns from` emits an assignment (`exports.ns = require('./y')`)
+and fails even without `esModuleInterop`.
+* `babelPluginRequireExtension` does not resolve directories
+(`const dir = require('./dir')` becomes `const dir = require('./dir.cjs')`).
+* `babelPluginImportExtension` resolves directories relative to the compiled file path,
+which `gulp-typescript` places in `outDir` when it is set (as in the documented `tsconfig.build.json`),
+so on a clean build `'./dir'` becomes `'./dir.js'`.

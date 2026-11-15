@@ -55,9 +55,10 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
 ### Babel plugins
 
 - `babelPluginImportExtension(ext = 'mjs')` is a factory (consumers pass `'js'`);
-  it checks the filesystem relative to the source file to choose `./x.<ext>` vs `./x/index.<ext>`.
+  it checks the filesystem relative to Babel's filename to choose `./x.<ext>` vs `./x/index.<ext>`
+  (`gulp-typescript` reports that filename under `outDir` when set, so the check misses on a clean build).
 - `babelPluginRequireExtension` is used directly (not a factory);
-  it only handles `const x = require('./y')` (see `ROADMAP.adoc` known limitations).
+  it only handles variable initializers like `var x = require('./y')` (see `ROADMAP.adoc` known limitations).
 - Consumers wire both in their own `babel.config.js`; `esmBuild`/`cjsBuild` just pipe through `gulp-babel`.
 
 ## Documentation
