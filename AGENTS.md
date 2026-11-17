@@ -50,6 +50,13 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
 - `packageJson` defaults: `main: ./index.cjs`, `module: ./index.js`, `types: ./index.d.ts`;
   strips `scripts`/`devDependencies`; third argument adds manual exports
   (this repo uses it for `./tsconfig.strict.json`).
+  Export that file under the `default` condition.
+  eslint-import-resolver-typescript v4 (via unrs-resolver) follows a tsconfig `extends`
+  with the `node`/`import` conditions and then falls back to `default`.
+  A `require`-only target is invisible to that lookup,
+  so every import in a consumer that extends `@perfective/build/tsconfig.strict.json`
+  is reported as `import-x/no-unresolved`.
+  `default` is the fallback those resolvers and `tsc` accept.
 - This package’s own `require` export conditions point to ES modules (no CJS output for itself).
 
 ### Babel plugins
