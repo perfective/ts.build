@@ -31,8 +31,10 @@ export default gulp.series(
         },
         {},
         {
+            // `default` is the fallback tsconfig `extends` resolvers and `tsc` accept.
+            // eslint-import-resolver-typescript v4 (unrs-resolver) matches `node`/`import`, then `default`.
             './tsconfig.strict.json': {
-                require: './tsconfig.strict.json',
+                default: './tsconfig.strict.json',
             },
         },
     ),
