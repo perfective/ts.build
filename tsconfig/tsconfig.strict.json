@@ -67,6 +67,7 @@
         "stripInternal": false,
         "target": "es2015",
         "traceResolution": false,
+        "types": ["*"],
         "useDefineForClassFields": false,
         "useUnknownInCatchVariables": true
     }

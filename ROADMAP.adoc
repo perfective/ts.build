@@ -50,7 +50,18 @@ Removing it removes the `cjsBuild` task and the `RequireExtension` plugin.
 * Revisit `tsconfig/tsconfig.strict.json` default `"module": "commonjs"`
 and `"moduleResolution": "bundler"` (set for TypeScript 6 after `node10` was deprecated;
 Gulp already overrides `module` per emit target).
+On TypeScript 6 this pair is valid.
+`cjsBuild()` keeps `module: commonjs` so emit stays CommonJS for the Babel `.cjs` rewrite.
+`node16` / `nodenext` are not a drop-in:
+they reject extensionless imports and, when `package.json` has `"type": "module"`, emit ESM.
 Prefer a modern baseline such as `NodeNext` once consumers are accounted for.
+* TypeScript 6 defaults `types` to `[]`.
+The strict config sets `"types": ["*"]` so installed `@types` packages stay in the program,
+which is what an unset `types` did through TypeScript 5.9.
+`@types/node` references the `es2020` lib,
+so `Array.prototype.includes`, `Object.entries`, and string padding stay visible at `target: es2015`.
+* README still says the strict config sets no `types`.
+Say that it sets `"types": ["*"]` in the Publish commit.
 * Choose a newer `target` than `es2015`.
 * Move `experimentalDecorators` out of the base configuration (required only for Angular).
 * Review `useDefineForClassFields: false` (legacy from the ES2015 target).
