@@ -1,5 +1,16 @@
 = Changelog
 
+== v0.23.1
+
+* Exported `tsconfig.strict.json` under the `default` condition.
+* Widened the optional `@babel/core` peer dependency to `^7.29.0 || ^8.1.0`.
+* Set `"types": ["*"]` in `tsconfig.strict.json` to keep loading installed `@types` packages on TypeScript 6.
+* Updated `prettier` to `3.10.1`.
+* Set `checkIgnorePragma` to `false` explicitly in the Prettier config.
+* Patched `glob` to `14.0.6`.
+* Documented TypeScript configuration, Babel plugins, Prettier, and Jest configuration in the README.
+
+
 == v0.23.0
 
 * Upgraded `typescript` to `6.0.3`.

@@ -22,7 +22,7 @@ with ES modules (`.js`), CommonJS (`.cjs`), and declaration files (`.d.ts`),
 instead of using two separate TypeScript compiler output trees.
 
 . Check that dev dependencies include correct versions of `@babel/core`, `gulp`, and `typescript`.
-`@babel/core` and `gulp` are optional peer dependencies of `@perfective/build`;
+`@babel/core` (`^7.29.0 || ^8.1.0`) and `gulp` are optional peer dependencies of `@perfective/build`;
 install them when using the Gulp TypeScript tasks and `@perfective/build/babel`.
 The TypeScript Gulp tasks run compiled output through `gulp-babel`, which requires `@babel/core`.
 +
@@ -126,8 +126,10 @@ build.packageJson.packageJson({
 `@perfective/build/tsconfig.strict.json` is a base configuration to `extends` from.
 It lists every relevant `compilerOptions` value explicitly (including defaults),
 so a TypeScript upgrade that changes a default does not silently change the build.
-It sets no `include`, `exclude`, `files`, `rootDir`, `outDir`, `lib`, or `types`:
+It sets no `include`, `exclude`, `files`, `rootDir`, `outDir`, or `lib`:
 those depend on the project layout and runtime.
+It sets `"types": ["*"]`, so all installed `@types` packages stay global,
+as an unset `types` did before TypeScript 6 (which defaults `types` to `[]`).
 
 === Project files
 
@@ -243,7 +245,7 @@ and the Babel plugins add the extensions in the emitted files.
 
 * `rootDir`, `outDir`, `include`/`exclude` — always project-specific.
 * `target` and `lib` — for newer language features (e.g. `"target": "es2017"`).
-* `types` — to limit global types (e.g. `["node"]` or `["jest"]`).
+* `types` — to limit global types instead of including all `@types` packages (e.g. `["node", "jest"]`).
 
 
 [#babel-plugins]
@@ -417,7 +419,7 @@ Default entry fields: `main: './index.cjs'`, `module: './index.js'`, `types: './
 ----
 {
     "devDependencies": {
-        "prettier": "^3.9.10"
+        "prettier": "^3.10.1"
     }
 }
 ----
