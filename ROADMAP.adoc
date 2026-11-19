@@ -60,8 +60,6 @@ The strict config sets `"types": ["*"]` so installed `@types` packages stay in t
 which is what an unset `types` did through TypeScript 5.9.
 `@types/node` references the `es2020` lib,
 so `Array.prototype.includes`, `Object.entries`, and string padding stay visible at `target: es2015`.
-* README still says the strict config sets no `types`.
-Say that it sets `"types": ["*"]` in the Publish commit.
 * Choose a newer `target` than `es2015`.
 * Move `experimentalDecorators` out of the base configuration (required only for Angular).
 * Review `useDefineForClassFields: false` (legacy from the ES2015 target).
