@@ -23,6 +23,7 @@ jobs:
             version: ${{ steps.tag.outputs.version }}
             prerelease: ${{ steps.tag.outputs.prerelease }}
             latest: ${{ steps.tag.outputs.latest }}
+            dist_tag: ${{ steps.tag.outputs.dist_tag }}
             notes: ${{ steps.notes.outputs.notes }}
 
         steps:
@@ -41,7 +42,9 @@ jobs:
                       echo "::error::${TAG} is not a vX.Y.Z or vX.Y.Z-<prerelease> tag."
                       exit 1
                   fi
-                  backport="v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+                  major="${BASH_REMATCH[1]}"
+                  minor="${BASH_REMATCH[2]}"
+                  backport="v${major}.${minor}.x"
                   version="${TAG#v}"
 
                   ref="$(gh api "repos/${REPO}/git/ref/tags/${TAG}")"
@@ -62,11 +65,20 @@ jobs:
                   sha="$(jq -r '.object.sha' <<<"${tag}")"
 
                   # Publish only commits that are on `main` or on the backport branch of this version.
+                  # The npm dist-tag `latest` is for a non-prerelease on `main` only.
+                  # A backport release uses `backport-X.Y`, which is not a semver range.
                   latest=
+                  dist_tag=
                   for branch in main "${backport}"; do
                       status="$(gh api "repos/${REPO}/compare/${branch}...${sha}" --jq '.status' 2>/dev/null || true)"
                       if [ "${status}" = "identical" ] || [ "${status}" = "behind" ]; then
-                          latest="$([ "${branch}" = main ] && echo true || echo false)"
+                          if [ "${branch}" = main ]; then
+                              latest=true
+                              dist_tag=latest
+                          else
+                              latest=false
+                              dist_tag="backport-${major}.${minor}"
+                          fi
                           break
                       fi
                   done
@@ -85,12 +97,14 @@ jobs:
                   prerelease="$([[ "${version}" == *-* ]] && echo true || echo false)"
                   if [ "${prerelease}" = "true" ]; then
                       latest=false
+                      dist_tag=next
                   fi
                   {
                       echo "sha=${sha}"
                       echo "version=${version}"
                       echo "prerelease=${prerelease}"
                       echo "latest=${latest}"
+                      echo "dist_tag=${dist_tag}"
                   } >> "${GITHUB_OUTPUT}"
 
             # Fails before publishing when the changelog has no section for this version.
@@ -159,7 +173,7 @@ jobs:
             - name: Publish package
               env:
                   VERSION: ${{ needs.verify.outputs.version }}
-                  DIST_TAG: ${{ needs.verify.outputs.prerelease == 'true' && 'next' || 'latest' }}
+                  DIST_TAG: ${{ needs.verify.outputs.dist_tag }}
               run: |
                   set -euo pipefail
                   name="$(jq -r '.name' package.json)"

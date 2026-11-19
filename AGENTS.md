@@ -119,9 +119,13 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
        and that `CHANGELOG.adoc` has the version's section.
        Then it runs `lint:build` and `dist`, runs `npm publish --provenance ./dist` (npm trusted publishing),
        and creates the GitHub Release with that changelog section as notes.
+       The `latest` npm dist-tag is reserved for a non-prerelease tag on `main`.
+       A non-prerelease tag on `vX.Y.x` (not `main`) publishes under `backport-X.Y`
+       (for example `backport-0.22`, which is not a semver range)
+       and its GitHub Release uses `--latest=false`.
        Reruns skip a version already on npm and a release that already exists.
-- Prerelease tags (`vX.Y.Z-<id>`) publish under the `next` npm tag and create a prerelease;
-  unused until ~v1.0.
+- Prerelease tags (`vX.Y.Z-<id>`) publish under the `next` npm tag and create a prerelease
+  (`--latest=false`); unused until ~v1.0.
 - npm trusted publishing is bound to the `publish.yaml` file name: renaming it breaks publishing.
 
 ## Renovate (dependency discovery)
