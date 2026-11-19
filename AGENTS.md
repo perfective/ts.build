@@ -94,7 +94,7 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
   Verbs by **dependency** SemVer: `Patch` (patch) / `Update` (minor) / `Upgrade` (major).
   Squash-merged PRs keep the `(#N)` suffix GitHub adds.
 - `Publish vX.Y.Z` commit touches only `package.json` (version), `package-lock.json` (`npm update`),
-  `CHANGELOG.adoc`, and `README.adoc`.
+  `CHANGELOG.adoc`, `README.adoc`, `README.md`, and `ROADMAP.adoc`.
 - `CHANGELOG.adoc`: newest `== vX.Y.Z` first, two blank lines between versions,
   past-tense bullets mirroring commit verbs (e.g. ``* Patched `ts-jest` to `29.4.15`.``).
 - Changelog: consumer-relevant only
@@ -102,12 +102,31 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
 - Package SemVer while on `v0`: bump **minor** for breaking changes;
   **patch** for non-breaking.
   Moving to the next TypeScript line usually opens the next `@perfective/build` version.
-- Maintainer release: `Publish vX.Y.Z` commit (includes `npm update` for peers)
-  → wait CI → signed annotated tag (`git tag -s vX.Y.Z` + push the tag)
-  → create the GitHub Release manually (so `publish.yaml` receives a human
-  `release` event; Actions-created releases with `GITHUB_TOKEN` do not wake it).
-  Prereleases are unused until ~v1.0
-  (`next` npm tag remains wired for `prereleased` events).
+- Release flow:
+    1. Maintainer files a `Release @perfective/build vX.Y.Z` issue (it can wait; nothing runs on creation).
+    2. Adding the `claude` label approves the release:
+       `publish-pr.yaml` sets the version, runs `npm update`,
+       and has Claude write the `CHANGELOG.adoc` section,
+       sync `README.adoc` and `README.md` (including peer ranges),
+       and remove or check off the delivered `ROADMAP.adoc` items,
+       commit `Publish vX.Y.Z` (signed through the GitHub API), and open the PR with `Closes #N`.
+       It refuses to run when the `vX.Y.Z` tag or the `publish-vX.Y.Z` branch already exists.
+    3. Maintainer reviews and squash-merges the Publish PR after CI passes.
+    4. Maintainer signs and pushes the tag (`git tag -s vX.Y.Z` + `git push origin vX.Y.Z`): the only manual step.
+    5. `publish.yaml` runs on the `v*` tag push.
+       It checks that the tag is annotated, signed (GitHub-verified),
+       points to a commit on `main` (or `vX.Y.x`), and matches the `package.json` version,
+       and that `CHANGELOG.adoc` has the version's section.
+       Then it runs `lint:build` and `dist`, runs `npm publish --provenance ./dist` (npm trusted publishing),
+       and creates the GitHub Release with that changelog section as notes.
+       The `latest` npm dist-tag is reserved for a non-prerelease tag on `main`.
+       A non-prerelease tag on `vX.Y.x` (not `main`) publishes under `backport-X.Y`
+       (for example `backport-0.22`, which is not a semver range)
+       and its GitHub Release uses `--latest=false`.
+       Reruns skip a version already on npm and a release that already exists.
+- Prerelease tags (`vX.Y.Z-<id>`) publish under the `next` npm tag and create a prerelease
+  (`--latest=false`); unused until ~v1.0.
+- npm trusted publishing is bound to the `publish.yaml` file name: renaming it breaks publishing.
 
 ## Renovate (dependency discovery)
 
