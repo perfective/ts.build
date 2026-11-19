@@ -85,7 +85,7 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
-            # The mechanical part of the Publish commit; Claude writes the changelog and the README.
+            # The mechanical part of the Publish commit; Claude writes the changelog, READMEs, and roadmap.
             - name: Bump the version and update the lockfile
               id: bump
               run: |
@@ -120,21 +120,22 @@ jobs:
                          two blank lines between versions, consumer-relevant changes only
                          (dependency and peer range changes, exports, configs, Gulp tasks, Babel plugins, docs);
                          no CI, workflow, Renovate, AGENTS.md, or ROADMAP.adoc changes.
-                      4. Apply to `README.adoc` the README gaps listed in `ROADMAP.adoc`
-                         that the commits since the last tag address,
-                         and sync the README peer dependency ranges with `package.json`.
-                         Use semantic line breaks. Leave `README.adoc` as it is when nothing applies.
-                         Do not edit `ROADMAP.adoc`.
-                      5. Run `npm run lint`, then `npm run lint:build` and `npm run dist`. Fix any failure
+                      4. Apply the README gaps listed in `ROADMAP.adoc`
+                         that the commits since the last tag address
+                         to both `README.adoc` and `README.md`, and keep the two in sync
+                         (including peer dependency ranges with `package.json`).
+                         Use semantic line breaks. Leave a README as it is when nothing applies.
+                      5. Update `ROADMAP.adoc`: remove or check off the items this release delivered.
+                      6. Run `npm run lint`, then `npm run lint:build` and `npm run dist`. Fix any failure
                          in the files you changed; stop and report when a failure is outside them.
-                      6. Commit with `mcp__github_file_ops__commit_files`: one commit titled `Publish v${{ env.VERSION }}`,
+                      7. Commit with `mcp__github_file_ops__commit_files`: one commit titled `Publish v${{ env.VERSION }}`,
                          with only the changed files among `package.json`, `package-lock.json`, `CHANGELOG.adoc`,
-                         and `README.adoc`. Nothing else goes into this commit.
-                      7. Open the PR:
+                         `README.adoc`, `README.md`, and `ROADMAP.adoc`. Nothing else goes into this commit.
+                      8. Open the PR:
                          `gh pr create --base main --head ${{ env.CLAUDE_BRANCH }} --title "Publish v${{ env.VERSION }}" --body-file <file>`.
                          The body has `Closes #${{ github.event.issue.number }}`, the new changelog section,
                          a summary of the README changes,
-                         and the `ROADMAP.adoc` items this release applied, so a follow-up PR removes them.
+                         and the `ROADMAP.adoc` items this release applied.
                          End the body with the italic line `*Written by Claude*`.
 
                       Do not tag, create a release, or publish to npm: the maintainer signs and pushes the tag,

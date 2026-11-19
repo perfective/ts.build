@@ -94,7 +94,7 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
   Verbs by **dependency** SemVer: `Patch` (patch) / `Update` (minor) / `Upgrade` (major).
   Squash-merged PRs keep the `(#N)` suffix GitHub adds.
 - `Publish vX.Y.Z` commit touches only `package.json` (version), `package-lock.json` (`npm update`),
-  `CHANGELOG.adoc`, and `README.adoc`.
+  `CHANGELOG.adoc`, `README.adoc`, `README.md`, and `ROADMAP.adoc`.
 - `CHANGELOG.adoc`: newest `== vX.Y.Z` first, two blank lines between versions,
   past-tense bullets mirroring commit verbs (e.g. ``* Patched `ts-jest` to `29.4.15`.``).
 - Changelog: consumer-relevant only
@@ -106,7 +106,9 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
     1. Maintainer files a `Release @perfective/build vX.Y.Z` issue (it can wait; nothing runs on creation).
     2. Adding the `claude` label approves the release:
        `publish-pr.yaml` sets the version, runs `npm update`,
-       and has Claude write the `CHANGELOG.adoc` section and the README gaps from `ROADMAP.adoc`,
+       and has Claude write the `CHANGELOG.adoc` section,
+       sync `README.adoc` and `README.md` (including peer ranges),
+       and remove or check off the delivered `ROADMAP.adoc` items,
        commit `Publish vX.Y.Z` (signed through the GitHub API), and open the PR with `Closes #N`.
        It refuses to run when the `vX.Y.Z` tag or the `publish-vX.Y.Z` branch already exists.
     3. Maintainer reviews and squash-merges the Publish PR after CI passes.
