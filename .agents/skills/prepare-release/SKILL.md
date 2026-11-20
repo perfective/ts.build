@@ -5,16 +5,19 @@ description: >-
     (version bump, CHANGELOG.adoc, README updates, ROADMAP.adoc)
     from the commits since the last release.
     Use only when the maintainer asks locally.
-    On GitHub, a release issue runs publish-pr.yaml instead.
+    On GitHub, a release issue runs publish-pr.yaml instead,
+    including a later fix on the existing publish branch.
     It never tags, releases, or publishes.
 ---
 
 # Prepare a release
 
-Run this only on the maintainer's request, and only outside a GitHub release issue.
+Run this only on the maintainer's request, and only outside a GitHub release issue or its Publish PR.
 A GitHub release is an open issue titled `Release @perfective/build vX.Y.Z` with the `release` label.
-Adding the `claude` label runs `.github/workflows/publish-pr.yaml`.
-The general Claude workflow skips that issue, so do not run this skill on it.
+Adding the `claude` label runs `.github/workflows/publish-pr.yaml`,
+which also continues on an existing `publish-vX.Y.Z` branch
+(re-adding the label, or `@claude` on the Publish PR) with a fix-up commit on that PR.
+The general Claude workflow skips the release issue and the Publish PR, so do not run this skill on either.
 Tagging and `npm publish` stay with the maintainer: `publish.yaml` publishes and creates the GitHub Release
 after the signed tag is pushed.
 
