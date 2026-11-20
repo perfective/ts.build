@@ -1,0 +1,415 @@
+name: Claude
+on:
+    issues:
+        types: [opened, assigned, labeled]
+    issue_comment:
+        types: [created]
+    pull_request_review_comment:
+        types: [created]
+    pull_request_review:
+        types: [submitted]
+
+jobs:
+    # The lock for this work: the issue number for an issue, or for a PR that Claude opened for an issue
+    # (its branch is `claude-issue-<number>-...`); the PR number for any other PR.
+    # Codex Review uses the same `claude-<number>` group, so one Claude run at a time pushes to a branch.
+    resolve:
+        name: Find the work to lock
+        # Start on an `@claude` mention or the `claude` label from a maintainer.
+        # The job checks the author's role itself, before any step runs repository code;
+        # the action checks write access again.
+        # Release issues are handled by `publish-pr.yaml` when `claude` is added.
+        # Skip an issue labeled `release`, or titled `Release @perfective/build v...`,
+        # so the two workflows do not both start. `@claude` on the Publish PR still runs here.
+        if: >-
+            (github.event_name == 'issues'
+                && !contains(github.event.issue.labels.*.name, 'release')
+                && !startsWith(github.event.issue.title, 'Release @perfective/build v')
+                && (github.event.action == 'labeled' && github.event.label.name == 'claude'
+                    || contains(github.event.issue.body, '@claude')
+                    && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)))
+            || (github.event_name == 'issue_comment'
+                && !contains(github.event.issue.labels.*.name, 'release')
+                && !startsWith(github.event.issue.title, 'Release @perfective/build v')
+                && contains(github.event.comment.body, '@claude')
+                && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+            || (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')
+                && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+            || (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')
+                && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.review.author_association))
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        outputs:
+            lock: ${{ steps.lock.outputs.lock }}
+            claude-args: ${{ steps.lock.outputs.claude-args }}
+            # A PR that Claude opened for an issue, from a branch in this repository (empty otherwise).
+            claude-pr: ${{ steps.lock.outputs.claude-pr }}
+            branch: ${{ steps.lock.outputs.branch }}
+        permissions:
+            pull-requests: read
+
+        steps:
+            - name: Find the lock
+              id: lock
+              working-directory: ${{ runner.temp }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+                  IS_PR: >-
+                      ${{ (github.event.issue.pull_request || github.event.pull_request) && 'true' || 'false' }}
+              run: |
+                  set -euo pipefail
+                  lock="${NUMBER}"
+                  claude_args=
+                  claude_pr=
+                  branch=
+                  if [ "${IS_PR}" = "true" ]; then
+                      pull="$(gh api "/repos/${REPO}/pulls/${NUMBER}")"
+                      issue="$(jq -r --arg repo "${REPO}" '
+                          select(.user.login == "claude[bot]" and .head.repo.full_name == $repo)
+                          | .head.ref
+                          | capture("^claude-issue-(?<issue>[0-9]+)-").issue' <<<"${pull}")"
+                      if [ -n "${issue}" ]; then
+                          lock="${issue}"
+                          claude_pr="${NUMBER}"
+                          branch="$(jq -r '.head.ref' <<<"${pull}")"
+                      fi
+                  else
+                      # On an issue, the action checks out `main` and starts a new branch:
+                      # it cannot work on the branch of a PR that Claude already opened for the issue.
+                      # Then Claude does not commit, and asks for the request on the PR instead.
+                      pr="$(gh api --paginate "/repos/${REPO}/pulls?state=open&per_page=100" \
+                          | jq -rs --arg repo "${REPO}" --arg prefix "claude-issue-${NUMBER}-" '
+                              [.[][]
+                                  | select(.user.login == "claude[bot]"
+                                      and .head.repo.full_name == $repo
+                                      and (.head.ref | startswith($prefix)))
+                                  | .number]
+                              | max // empty')"
+                      if [ -n "${pr}" ]; then
+                          note="Issue #${NUMBER} already has an open PR, #${pr}, and this run is on the issue,"
+                          note="${note} so it cannot work on that PR branch. Do not commit or push."
+                          note="${note} Answer on the issue, and ask the maintainer to repeat the request"
+                          note="${note} as an @claude comment on PR #${pr}, where the workflow checks out its branch."
+                          # Single quotes: the note has no single quotes.
+                          claude_args="--disallowedTools mcp__github_file_ops__commit_files"
+                          claude_args="${claude_args} mcp__github_file_ops__delete_files"
+                          claude_args="${claude_args} --append-system-prompt '${note}'"
+                      fi
+                  fi
+                  {
+                      echo "lock=${lock}"
+                      echo "claude-args=${claude_args}"
+                      echo "claude-pr=${claude_pr}"
+                      echo "branch=${branch}"
+                  } >> "${GITHUB_OUTPUT}"
+
+    claude:
+        name: Work on the issue or PR
+        needs: resolve
+        # One run per issue at a time (with the PR that Claude opened for it); a newer request waits.
+        concurrency:
+            group: claude-${{ needs.resolve.outputs.lock }}
+            cancel-in-progress: false
+            # Keep every pending job (up to 100, in the order they started waiting).
+            # The default queue keeps one, so a third job in the group would cancel the waiting one.
+            # Every job in a `claude-<number>` group needs it: a job with the default queue cancels the pending ones.
+            queue: max
+        runs-on: ubuntu-latest
+        timeout-minutes: 60
+        outputs:
+            codex-pr: ${{ steps.codex.outputs.pr }}
+            before: ${{ steps.codex.outputs.before }}
+            after: ${{ steps.codex.outputs.after }}
+
+        permissions:
+            contents: write # Push the work branch
+            pull-requests: write # Open and update the PR
+            issues: write # Update the tracking comment
+            id-token: write # Claude GitHub App token (its pushes trigger CI, unlike GITHUB_TOKEN)
+            actions: read # Read the CI results of the PR
+
+        steps:
+            # On a Renovate PR, check out its head, so the installed dependencies match the PR's lockfile.
+            # Other runs install from the default branch: the PR code of other authors never runs before the action.
+            - name: Checkout repository
+              uses: actions/checkout@v7
+              with:
+                  ref: >-
+                      ${{ (github.event.issue.user.login || github.event.pull_request.user.login) == 'renovate[bot]'
+                      && (github.event.pull_request.head.sha || format('refs/pull/{0}/head', github.event.issue.number))
+                      || '' }}
+                  fetch-depth: 0
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version: '26.x'
+
+            # Renovate can push a lockfile that `npm ci` rejects; `npm install` then fixes it.
+            # When both fail (for example, a peer dependency conflict), the job goes on,
+            # so Claude reports the error instead of the job stopping before Claude starts.
+            - name: Install dependencies
+              id: install
+              run: |
+                  if npm ci || npm install; then
+                      echo "note=The dependencies are installed." >> "${GITHUB_OUTPUT}"
+                      echo "failed=false" >> "${GITHUB_OUTPUT}"
+                  else
+                      echo "::warning::npm could not install the dependencies. Claude reports the error."
+                      note="Both \`npm ci\` and \`npm install\` failed, so the dependencies are not installed,"
+                      note="${note} and lint and the build cannot run."
+                      note="${note} Do not commit anything in this run, \`package-lock.json\` included:"
+                      note="${note} the commit tools are off, and any other instruction to commit does not apply."
+                      note="${note} Run \`npm install\` to see the error, and report it as **NEEDS HUMAN**"
+                      note="${note} with what has to change first"
+                      note="${note} (for example, a peer dependency that needs another update to land first)."
+                      note="${note} Do not work around it with \`--force\` or \`--legacy-peer-deps\`."
+                      {
+                          echo "note=${note}"
+                          echo "failed=true"
+                          # Without the commit tools, no instruction in the prompt or the skill can commit.
+                          # The note also goes into the system prompt (the Claude workflow has no prompt input).
+                          # Single quotes: the note has backticks and no single quotes.
+                          echo "claude-args=--disallowedTools mcp__github_file_ops__commit_files" \
+                              "mcp__github_file_ops__delete_files --append-system-prompt '${note}'"
+                      } >> "${GITHUB_OUTPUT}"
+                  fi
+
+            # The commits Claude pushes in this run come after this head.
+            # They decide whether this run resolves Codex review threads.
+            - name: Record the PR branch head
+              if: needs.resolve.outputs.claude-pr != ''
+              id: before
+              working-directory: ${{ runner.temp }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  BRANCH: ${{ needs.resolve.outputs.branch }}
+              run: |
+                  set -euo pipefail
+                  sha="$(gh api "/repos/${REPO}/git/ref/heads/${BRANCH}" --jq '.object.sha')"
+                  echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+
+            - name: Run Claude Code
+              id: claude
+              uses: anthropics/claude-code-action@v1
+              with:
+                  claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+                  label_trigger: claude
+                  # The action denies npm commands on PRs whose author has no write access, bots included.
+                  # Allow them on Renovate PRs and on the PRs Claude opened for issues:
+                  # their branches live in this repository, and CI already runs `npm ci`, `lint:build`, and `dist` on them.
+                  # PRs from outside contributors keep the restriction.
+                  restrict_untrusted_prs: >-
+                      ${{ ((github.event.issue.user.login || github.event.pull_request.user.login) == 'renovate[bot]'
+                      || needs.resolve.outputs.claude-pr != '')
+                      && 'false' || 'true' }}
+                  # `claude/...` branches cannot coexist with the `claude` dev branch in git.
+                  branch_prefix: claude-
+                  # `main` requires signed commits: commit through the GitHub API, so GitHub signs the commits.
+                  use_commit_signing: true
+                  # No merge or rebase: those commits cannot go through the signed-commit tool.
+                  # No local commit or push either: they are unsigned, and `main` requires signed commits.
+                  # On an issue with an open Claude PR, `resolve` also takes away the commit tools.
+                  # An install failure takes away the commit tools and says what to report (empty otherwise).
+                  claude_args: |
+                      --model claude-opus-5-5
+                      ${{ needs.resolve.outputs.claude-args }}
+                      ${{ steps.install.outputs.claude-args }}
+                      --allowedTools
+                      "Bash(npm install)"
+                      "Bash(npm outdated)"
+                      "Bash(npm ls:*)"
+                      "Bash(npm view:*)"
+                      "Bash(npm run lint)"
+                      "Bash(npm run lint:build)"
+                      "Bash(npm run dist)"
+                      "Bash(git status)"
+                      "Bash(git log:*)"
+                      "Bash(git diff:*)"
+                      "Bash(git show:*)"
+                      "Bash(gh issue view:*)"
+                      "Bash(gh pr view:*)"
+                      "Bash(gh pr diff:*)"
+                      "Bash(gh pr list:*)"
+                      "Bash(gh pr edit * --add-label *)"
+                      "Bash(gh pr edit * --remove-label *)"
+                      "Bash(gh pr create:*)"
+                      "Bash(gh release view:*)"
+                      "Bash(gh api repos/*/pulls/*/comments*)"
+                      "Bash(gh api repos/*/pulls/*/reviews*)"
+                      "WebFetch(domain:github.com)"
+                      "WebFetch(domain:raw.githubusercontent.com)"
+                      "WebFetch(domain:www.npmjs.com)"
+                      "WebFetch(domain:www.typescriptlang.org)"
+                      "WebFetch(domain:babeljs.io)"
+                      "WebFetch(domain:gulpjs.com)"
+                      "WebFetch(domain:prettier.io)"
+                      "WebFetch(domain:jestjs.io)"
+                      --disallowedTools
+                      "Bash(git merge:*)"
+                      "Bash(git rebase:*)"
+                      "Bash(git pull:*)"
+                      "Bash(git commit:*)"
+                      "Bash(git push:*)"
+
+            # The action reports success even when Claude did not run, for example when the workflow files
+            # of a PR's test merge differ from the default branch (the Claude GitHub App refuses to run then).
+            # Claude sets `conclusion` only when it ran: fail the job, so a skipped review is not a green check.
+            # `!cancelled()`: an earlier failed step also skips Claude, and it needs the same report.
+            # `steps.claude.conclusion` is the step result: a failed Claude step (for example, a failed token setup
+            # or CLI install) is a red job, not a "did not run" report with `help wanted`.
+            - name: Fail when Claude did not run
+              if: ${{ !cancelled() && steps.claude.conclusion != 'failure' && steps.claude.outputs.conclusion == '' }}
+              working-directory: ${{ runner.temp }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  GH_REPO: ${{ github.repository }}
+                  NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+                  RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+              run: |
+                  set -euo pipefail
+                  gh issue comment "${NUMBER}" --body "$(printf '%s\n\n%s\n%s\n%s\n' \
+                      "Claude did not run (${RUN})." \
+                      'If the log says "Workflow validation failed", the workflow files differ from `main`.' \
+                      'For a PR, update its branch, then ask again.' \
+                      'Otherwise, check the first failed step in the log.')"
+                  echo "::error::Claude did not run. See the workflow log of the Claude step."
+                  exit 1
+
+            # Codex does not review drafts: whatever `gh pr create` made, this step marks the PR ready,
+            # including when the Claude step did not succeed. `gh pr ready` uses this job's token.
+            # Threads are resolved only when this run pushed commits onto an existing issue PR.
+            - name: Prepare the issue PR for Codex
+              if: ${{ !cancelled() }}
+              id: codex
+              working-directory: ${{ runner.temp }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  GH_REPO: ${{ github.repository }}
+                  REPO: ${{ github.repository }}
+                  NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+                  IS_PR: >-
+                      ${{ (github.event.issue.pull_request || github.event.pull_request) && 'true' || 'false' }}
+                  BRANCH: ${{ needs.resolve.outputs.branch }}
+                  BEFORE: ${{ steps.before.outputs.sha }}
+              run: |
+                  set -euo pipefail
+                  # The PR itself, or the open PR from the issue branch (`claude-issue-<number>-...`).
+                  # Only PRs that Claude opened from a branch in this repository.
+                  if [ "${IS_PR}" = "true" ]; then
+                      pr="$(gh api "/repos/${REPO}/pulls/${NUMBER}" \
+                          | jq -r --arg repo "${REPO}" '
+                              select(.state == "open"
+                                  and .user.login == "claude[bot]"
+                                  and .head.repo.full_name == $repo
+                                  and (.head.ref | startswith("claude-issue-")))
+                              | .number')"
+                  else
+                      pr="$(gh api --paginate "/repos/${REPO}/pulls?state=open&per_page=100" \
+                          | jq -rs --arg repo "${REPO}" --arg prefix "claude-issue-${NUMBER}-" '
+                              [.[][]
+                                  | select(.user.login == "claude[bot]"
+                                      and .head.repo.full_name == $repo
+                                      and (.head.ref | startswith($prefix)))
+                                  | .number]
+                              | max // empty')"
+                  fi
+                  if [ -z "${pr}" ]; then
+                      echo "No PR that Claude opened for an issue."
+                      exit 0
+                  fi
+                  if [ "$(gh api "/repos/${REPO}/pulls/${pr}" --jq '.draft')" = "true" ]; then
+                      gh pr ready "${pr}"
+                      echo "Marked PR #${pr} ready for review so Codex can review it."
+                  fi
+                  # A new PR has no Codex threads yet. Codex reviews it when it is opened.
+                  if [ -z "${BEFORE}" ]; then
+                      exit 0
+                  fi
+                  after="$(gh api "/repos/${REPO}/git/ref/heads/${BRANCH}" --jq '.object.sha')"
+                  if [ "${after}" = "${BEFORE}" ] \
+                      || [ "$(gh api "/repos/${REPO}/compare/${BEFORE}...${after}" --jq '.status')" != "ahead" ]; then
+                      echo "Claude did not push commits to PR #${pr}."
+                      exit 0
+                  fi
+                  {
+                      echo "pr=${pr}"
+                      echo "before=${BEFORE}"
+                      echo "after=${after}"
+                  } >> "${GITHUB_OUTPUT}"
+
+    # Fresh runner: the Claude job cannot change the environment that resolves threads.
+    threads:
+        name: Resolve the threads Claude fixed
+        needs: [resolve, claude]
+        if: needs.claude.outputs.codex-pr != ''
+        # In the same lock as the Claude job, so this does not overlap another writer on the branch.
+        concurrency:
+            group: claude-${{ needs.resolve.outputs.lock }}
+            cancel-in-progress: false
+            # Keep every pending job (up to 100, in the order they started waiting).
+            # The default queue keeps one, so a third job in the group would cancel the waiting one.
+            # Every job in a `claude-<number>` group needs it: a job with the default queue cancels the pending ones.
+            queue: max
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        permissions:
+            contents: read # Compare the commits Claude pushed
+            pull-requests: write # Resolve the threads Claude fixed
+
+        steps:
+            # As in the Codex Review workflow: a thread is resolved only when Claude's last reply
+            # names the full SHA of a commit it pushed in this run and does not ask for a decision.
+            # `continue-on-error` keeps a GraphQL failure from failing the job.
+            - name: Resolve the threads Claude fixed
+              continue-on-error: true
+              working-directory: ${{ runner.temp }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  OWNER: ${{ github.repository_owner }}
+                  NAME: ${{ github.event.repository.name }}
+                  PR: ${{ needs.claude.outputs.codex-pr }}
+                  BEFORE: ${{ needs.claude.outputs.before }}
+                  AFTER: ${{ needs.claude.outputs.after }}
+              run: |
+                  set -euo pipefail
+                  shas="$(gh api "/repos/${REPO}/compare/${BEFORE}...${AFTER}" --jq '[.commits[].sha]')"
+                  gh api graphql -F owner="${OWNER}" -F name="${NAME}" -F pr="${PR}" -f query='
+                      query($owner: String!, $name: String!, $pr: Int!) {
+                          repository(owner: $owner, name: $name) {
+                              pullRequest(number: $pr) {
+                                  reviewThreads(first: 100) {
+                                      nodes {
+                                          id
+                                          isResolved
+                                          firstComment: comments(first: 1) {
+                                              nodes { author { login } }
+                                          }
+                                          lastComment: comments(last: 1) {
+                                              nodes { author { login } body }
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }' \
+                      | jq -r --argjson shas "${shas}" '
+                          def who: (.author.login // "") | sub("\\[bot\\]$"; "");
+                          .data.repository.pullRequest.reviewThreads.nodes[]
+                          | select(.isResolved | not)
+                          | select(.firstComment.nodes[0] | who == "chatgpt-codex-connector")
+                          | select(.lastComment.nodes[0] | who == "claude")
+                          | .lastComment.nodes[0].body as $body
+                          | select($body | contains("NEEDS HUMAN") | not)
+                          | select(any($shas[]; . as $sha | $body | contains($sha)))
+                          | .id' \
+                      | while read -r thread; do
+                          gh api graphql -f thread="${thread}" -f query='
+                              mutation($thread: ID!) {
+                                  resolveReviewThread(input: {threadId: $thread}) { thread { id } }
+                              }' > /dev/null
+                      done
