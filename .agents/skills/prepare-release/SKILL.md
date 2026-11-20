@@ -18,8 +18,9 @@ Adding the `claude` label runs `.github/workflows/publish-pr.yaml`,
 which also continues on an existing `publish-vX.Y.Z` branch
 (re-adding the label, or `@claude` on the Publish PR) with a fix-up commit on that PR.
 The general Claude workflow skips the release issue and the Publish PR, so do not run this skill on either.
-Tagging and `npm publish` stay with the maintainer: `publish.yaml` publishes and creates the GitHub Release
+Tagging and `npm publish` stay with the maintainer: `publish.yaml` publishes to npm only
 after the signed tag is pushed.
+The maintainer creates the GitHub Release manually.
 
 The result of a local run is one `Publish vX.Y.Z` commit on the agent branch.
 
@@ -103,4 +104,5 @@ Stop after the commit. Do not tag, create a release, or publish to npm. Report:
 1. Push the branch and open a pull request (or let `publish-pr.yaml` do that from the release issue).
 2. After CI passes, squash-merge the Publish PR.
 3. `git tag -s vX.Y.Z` and push the tag.
-4. `publish.yaml` publishes `@perfective/build` and creates the GitHub Release.
+4. `publish.yaml` publishes `@perfective/build` to npm only.
+5. The maintainer creates the GitHub Release for the tag manually.
