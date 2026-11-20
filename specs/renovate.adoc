@@ -3,8 +3,8 @@
 :renovate-app: https://github.com/apps/renovate
 
 This document describes the **end-state** design for Perfective TypeScript package dependency updates.
-The short-term pilot is Renovate discovery only (see <<pilot>>).
-Automation beyond that is built later; merge and publish always stay with the maintainer.
+The current pilot is Renovate discovery plus the Claude and Codex review workflows (see <<pilot>>).
+The controller below is built later; merge and publish always stay with the maintainer.
 
 Documentation in this repository uses https://sembr.org/[semantic line breaks]
 (sense boundaries; line width ≤ 120 characters).
@@ -44,6 +44,13 @@ Documentation in this repository uses https://sembr.org/[semantic line breaks]
   then squash-merge with a Perfective commit title
   (e.g. `Update @babel/core to v7.29.6`);
   README and changelog still only at Publish.
+* Review path in use:
+  `dependency-review.yaml` runs Claude with `.agents/skills/update-dependency/SKILL.md`
+  when Renovate opens or updates a PR, or when a maintainer adds `claude-review`.
+  `codex-review.yaml` addresses Codex findings (three rounds),
+  and `codex-watchdog.yaml` flags a head with no Codex review for two hours.
+  `claude.yaml` skips an issue labeled `release`
+  and an issue titled `Release @perfective/build v...`, which `publish-pr.yaml` owns.
 
 The pilot exists to observe Renovate's real PR shape, changelog embedding, and dashboard
 before investing in a controller.
@@ -193,7 +200,8 @@ Use only if the review branch itself must also be a single commit.
 
 == Hosting roadmap
 
-. **Now:** Mend Renovate Community Cloud + manual/Cursor handling of PRs.
+. **Now:** Mend Renovate Community Cloud, Dependency Review, and Codex review on Renovate PRs.
+  The maintainer still squash-merges and publishes.
 . **Next:** a private Perfective controller
   (Cursor TypeScript SDK + GitHub API; secrets in a secret store, never in git);
   start in shadow mode (report + PR comment only).
@@ -238,5 +246,8 @@ at most two attempts per idempotency key, then needs human.
 
 * `specs/` — design specifications for this repository (not published consumer docs).
 * `renovate.json` — live Renovate configuration (pilot).
+* `.github/workflows/claude.yaml`, `dependency-review.yaml`, `codex-review.yaml`, `codex-watchdog.yaml`
+  — the review path in use. `publish-pr.yaml` and `publish.yaml` stay the release path.
+* `.agents/skills/` — `update-dependency`, `update-dependencies`, and `prepare-release`.
 * `AGENTS.md` — day-to-day agent rules for this repository.
 * `ROADMAP.adoc` — package backlog (not Renovate-specific).
