@@ -102,6 +102,20 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
 - Work on the `cursor` branch (maintainer rebases/cherry-picks as needed).
   Always commit completed work there.
   Never commit to `main`, force-push, tag, release, or `npm publish`.
+- When an AI agent (Claude Code, Cursor, Codex, Grok Bot, or another agent)
+  creates or edits a GitHub issue, pull request description, comment, or review
+  under the maintainer's account
+  (for example via `gh`, an MCP connector, or a personal token),
+  write plain Markdown (no bot header or quote block)
+  and end with a blank line followed by an italic signature naming the agent:
+  `*Written by Claude*`, `*Written by Cursor*`, `*Written by Codex*`, or `*Written by Grok Bot*`.
+  To trigger a Codex review under that account,
+  put `@codex review` on the first line,
+  followed by a blank line and the italic signature line.
+  Never write a bare `@codex` or `@claude` mention anywhere else
+  in a GitHub comment, review, or issue.
+  Wrap it in backticks (e.g. `` `@codex review` ``)
+  so it does not trigger a bot run.
 - In the `Claude` workflow (`.github/workflows/claude.yaml`),
   the agent's branch is the one the action creates for the issue
   (`claude-issue-<number>-...`; `claude/...` cannot coexist with a `claude` branch).
