@@ -15,8 +15,9 @@ Run this only on the maintainer's request, and only outside a GitHub release iss
 A GitHub release is an open issue titled `Release @perfective/build vX.Y.Z` with the `release` label.
 Adding the `claude` label runs `.github/workflows/publish-pr.yaml`.
 The general Claude workflow skips that issue, so do not run this skill on it.
-Tagging and `npm publish` stay with the maintainer: `publish.yaml` publishes and creates the GitHub Release
+Tagging and `npm publish` stay with the maintainer: `publish.yaml` publishes to npm only
 after the signed tag is pushed.
+The maintainer creates the GitHub Release manually.
 
 The result of a local run is one `Publish vX.Y.Z` commit on the agent branch.
 
@@ -100,4 +101,5 @@ Stop after the commit. Do not tag, create a release, or publish to npm. Report:
 1. Push the branch and open a pull request (or let `publish-pr.yaml` do that from the release issue).
 2. After CI passes, squash-merge the Publish PR.
 3. `git tag -s vX.Y.Z` and push the tag.
-4. `publish.yaml` publishes `@perfective/build` and creates the GitHub Release.
+4. `publish.yaml` publishes `@perfective/build` to npm only.
+5. The maintainer creates the GitHub Release for the tag manually.

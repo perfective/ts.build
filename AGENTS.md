@@ -154,20 +154,19 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
        commit `Publish vX.Y.Z` (signed through the GitHub API), and open the PR with `Closes #N`.
        It refuses to run when the `vX.Y.Z` tag or the `publish-vX.Y.Z` branch already exists.
     3. Maintainer reviews and squash-merges the Publish PR after CI passes.
-    4. Maintainer signs and pushes the tag (`git tag -s vX.Y.Z` + `git push origin vX.Y.Z`): the only manual step.
+    4. Maintainer signs and pushes the tag (`git tag -s vX.Y.Z` + `git push origin vX.Y.Z`).
     5. `publish.yaml` runs on the `v*` tag push.
        It checks that the tag is annotated, signed (GitHub-verified),
        points to a commit on `main` (or `vX.Y.x`), and matches the `package.json` version,
        and that `CHANGELOG.adoc` has the version's section.
-       Then it runs `lint:build` and `dist`, runs `npm publish --provenance ./dist` (npm trusted publishing),
-       and creates the GitHub Release with that changelog section as notes.
+       Then it runs `lint:build` and `dist`, and runs `npm publish --provenance ./dist` (npm trusted publishing).
+       `publish.yaml` publishes to npm only.
        The `latest` npm dist-tag is reserved for a non-prerelease tag on `main`.
        A non-prerelease tag on `vX.Y.x` (not `main`) publishes under `backport-X.Y`
-       (for example `backport-0.22`, which is not a semver range)
-       and its GitHub Release uses `--latest=false`.
-       Reruns skip a version already on npm and a release that already exists.
-- Prerelease tags (`vX.Y.Z-<id>`) publish under the `next` npm tag and create a prerelease
-  (`--latest=false`); unused until ~v1.0.
+       (for example `backport-0.22`, which is not a semver range).
+       Reruns skip a version already on npm.
+    6. The maintainer creates the GitHub Release for the tag manually.
+- Prerelease tags (`vX.Y.Z-<id>`) publish under the `next` npm tag; unused until ~v1.0.
 - npm trusted publishing is bound to the `publish.yaml` file name: renaming it breaks publishing.
 
 ## Dependency maintenance
