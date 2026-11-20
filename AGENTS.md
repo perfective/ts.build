@@ -126,7 +126,8 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
 - The general `Claude` workflow does not run on a release issue
   (an issue labeled `release`, or titled `Release @perfective/build v...`).
   Adding `claude` to that issue runs `publish-pr.yaml` only.
-  `@claude` on the Publish PR still uses the general workflow.
+  It also skips a Publish PR (titled `Publish v...`, or a `publish-vX.Y.Z` branch in this repository):
+  `@claude` there runs `publish-pr.yaml` with the release prompt and the same tool allow-list.
 - Backports only when needed: remote/local `vX.Y.x` (e.g. `v0.4.x`).
   CI also runs on those branches.
 - Commit titles: short imperative sentence, no trailing period, usually no body
@@ -152,7 +153,15 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
        sync `README.adoc` and `README.md` (including peer ranges),
        and remove or check off the delivered `ROADMAP.adoc` items,
        commit `Publish vX.Y.Z` (signed through the GitHub API), and open the PR with `Closes #N`.
-       It refuses to run when the `vX.Y.Z` tag or the `publish-vX.Y.Z` branch already exists.
+       It refuses to run when the `vX.Y.Z` tag already exists,
+       or when a Publish PR from `publish-vX.Y.Z` is already merged.
+       When that branch already exists, it continues on it instead of starting over.
+       Re-adding the `claude` label, or an `@claude` request from a maintainer on the Publish PR,
+       checks out that branch and asks Claude to fix what is wrong
+       (a failed check, `CHANGELOG.adoc`, the READMEs, or `ROADMAP.adoc`)
+       in a new commit on the same PR, with the same tool allow-list as the first run.
+       Claude opens the PR when none is open, and otherwise comments on it.
+       A fix outside those files is **NEEDS HUMAN**: it stays out of the Publish PR.
     3. Maintainer reviews and squash-merges the Publish PR after CI passes.
     4. Maintainer signs and pushes the tag (`git tag -s vX.Y.Z` + `git push origin vX.Y.Z`): the only manual step.
     5. `publish.yaml` runs on the `v*` tag push.
@@ -458,8 +467,11 @@ Codex reads this section when it reviews a pull request.
   until Codex has no unresolved findings or the review cap is reached.
 - `Codex Review Watchdog` (`.github/workflows/codex-watchdog.yaml`) runs hourly.
   It flags a Renovate PR or a Claude issue PR whose head has had no Codex review for 2 hours.
-- `Publish PR` (`.github/workflows/publish-pr.yaml`) and `Publish` (`.github/workflows/publish.yaml`)
-  are unchanged. The general Claude workflow does not start them and does not run on their release issue.
+- `Publish PR` (`.github/workflows/publish-pr.yaml`) opens the Publish PR when `claude` is added
+  to a release issue, and continues on the existing `publish-vX.Y.Z` branch when the label is re-added
+  or a maintainer mentions `@claude` on the Publish PR (see "Git and releases").
+  `Publish` (`.github/workflows/publish.yaml`) runs on a signed `v*` tag.
+  The general Claude workflow does not start them, and it does not run on the release issue or the Publish PR.
 - CI (`.github/workflows/ci.yaml`) runs `npm ci`, `lint:build`, and `dist` on Node 22.x, 24.x, and 26.x
   for PRs and pushes to `main` / `vX.Y.x`.
 
