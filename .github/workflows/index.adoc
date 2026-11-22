@@ -12,28 +12,15 @@ Every job runs on `ubuntu-latest`.
 Jobs that install dependencies use Node `26.x`, except `ci.yaml`.
 Jobs that run Claude read `CLAUDE_CODE_OAUTH_TOKEN` and commit through the GitHub API.
 
-== Overview
-
-`ci.yaml` checks every pull request.
-`dependency-review.yaml` reviews each Renovate PR.
-Codex reviews Renovate PRs and Claude issue PRs on its own,
-`codex-review.yaml` asks Claude to fix those findings,
-and `codex-watchdog.yaml` flags a pull request that Codex has not reviewed.
-A Claude mention, or the `claude` label, runs `claude.yaml`.
-On a release issue, the `claude` label runs `publish-pr.yaml` instead, which opens the Publish PR.
-After the maintainer squash-merges it and pushes a signed tag, `publish.yaml` publishes the package.
-
 == ci.yaml (Continuous Integration)
 
-`ci.yaml` runs on every pull request, and on a push to `main` or to a `vX.Y.x` branch.
-The job runs once for each of Node `22.x`, `24.x`, and `26.x`.
-Each version runs `npm ci`, then `npm run lint:build`, then `npm run dist`.
-There are no tests yet.
+`ci.yaml` builds the package on every pull request, on a push to `main`, or on a push to a `vX.Y.x` branch.
+The job runs once for Node versions `22.x`, `24.x`, and `26.x`.
 
 == dependency-review.yaml (Dependency Review)
 
-`dependency-review.yaml` runs when Renovate opens, reopens, or updates a Renovate PR.
-Adding the `claude-review` label reruns it.
+`dependency-review.yaml` runs a review by Claude when Renovate opens, reopens, and updates a Renovate PR;
+or when the `claude-review` label is added to the PR.
 Claude follows the `update-dependency` skill and may push one signed follow-up commit.
 When the job succeeds, it triggers `codex-review.yaml`.
 
@@ -77,7 +64,7 @@ This workflow does not create the tag, and it does not publish to npm.
 
 == publish.yaml (Publish)
 
-`publish.yaml` runs when a tag matching `v*` is pushed.
+`publish.yaml` publishes a new version of the package when a tag matching `v*` is pushed.
 The tag must be annotated, GitHub must verify its signature, and the commit must be on `main` or on `vX.Y.x`.
 `package.json` must carry that version, and `CHANGELOG.adoc` must contain a section for it.
 The job runs `lint:build` and `dist`, then publishes `./dist` with provenance.
