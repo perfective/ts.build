@@ -246,14 +246,29 @@ Skills:
    e.g. `Update @babel/core to v7.29.6`
    (no `dependency` prefix, no `[SECURITY]` suffix).
    Put advisory links in the squash body if useful.
-   When a PR has several follow-up commits,
-   write the squash commit body from the net diff against `main`, not from the follow-up commits:
+   Write the squash commit body from the net diff against `main`,
+   not from the follow-up commits:
    one list item per consumer-visible change (preset options, exports, task behavior, peer ranges)
    and one line for process changes.
    Leave out changes that cancel out.
+   A PR without such changes has no list items.
 4. **Suggesting the squash commit** (in a report or a PR comment):
-   put the title and the body each in its own fenced code block (` ```text `),
-   so both render as code and can be copied as is.
+   make it paste-ready, so the maintainer pastes it into the squash-merge dialog without editing.
+   Under a `Commit message` heading, put the title in a fenced code block (` ```text `);
+   the title ends with the PR number, ` (#<number>)`.
+   Under an `Extended description` heading, put the body in its own ` ```text ` block.
+   GitHub does not wrap text in that block, so its prose uses semantic line breaks (one sentence per line);
+   list items, in that block and in the review summary, stay on one line each.
+   The body ends with one `Co-authored-by: <name> <email>` trailer per commit author
+   (for example `claude[bot]` on a Renovate PR),
+   in the order of their first commit, without duplicates (compare the emails case-insensitively).
+   Take the names and emails from `gh pr view <number> --json author,commits`
+   (`.commits[].authors[]`, which also lists the co-authors of each commit).
+   The trailers never list the maintainer (`amikheychik`) or the PR author (`.author.login`;
+   compare the logins without an `app/` prefix or a `[bot]` suffix):
+   the squash commit's author is the PR author, so a trailer would credit it twice.
+   Separate the trailers from the list items with a blank line;
+   a body without list items has only the trailers.
    Never put the title in inline backticks or render the body as Markdown.
    The body inside its block is the plain commit text (`- ` list items, backticks around package names).
 5. Dependency Dashboard is the backlog;
@@ -435,6 +450,28 @@ including when the Claude step did not succeed.
 - To review again after a failed review, push a commit (Codex reviews every push).
   A person can also comment `@codex review`; the workflows never do.
   After 3 rounds the workflow only reports the findings.
+
+## Reviewer signatures
+
+Every AI agent that creates or edits a GitHub issue, pull request description, comment, or review
+under the maintainer's account signs that text,
+so triage can attribute it.
+This covers Claude Code, Cursor, Codex, Grok Bot, and any other agent,
+including text posted with `gh`, an MCP connector, or a personal token.
+
+- Write plain Markdown.
+  Do not add a bot header, wrap the body in a quote block,
+  or start with the agent's name as the first line.
+- End with a blank line, then an italic signature that names the agent,
+  for example `*Written by Claude*`, `*Written by Cursor*`, `*Written by Codex*`,
+  or `*Written by Grok Bot*`.
+- A Codex review trigger under the maintainer's account
+  starts with `@codex review` on the first line,
+  followed by a blank line and the italic signature line.
+- Never write a bare `@codex` or `@claude` mention anywhere else
+  in a GitHub comment, review, or issue.
+  Wrap it in backticks (for example `` `@codex review` ``)
+  so it does not trigger a bot run.
 
 ## Code Review Rules
 
