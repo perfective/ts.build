@@ -1,86 +1,99 @@
 = GitHub Actions
 
-This file describes how the workflows in `.github/workflows/` behave today.
+Use this index to find what starts each workflow, what it does, and where maintainers act.
+All jobs run on `ubuntu-latest`.
+Jobs that install dependencies use Node.js `26.x` unless listed below.
+Claude jobs use `CLAUDE_CODE_OAUTH_TOKEN` and make signed commits through the GitHub API.
 
-Claude mention:: A maintainer's comment, review, or issue body that asks Claude to run.
-Claude issue PR:: A pull request Claude opened for an issue, on a `claude-issue-<number>-...` branch.
-Renovate PR:: A pull request that Renovate opened for one dependency.
-Release issue:: An issue titled `Release @perfective/build vX.Y.Z`.
-Publish PR:: The pull request from `publish-vX.Y.Z` that `publish-pr.yaml` opens for a release issue.
+== Continuous integration
 
-Every job runs on `ubuntu-latest`.
-Jobs that install dependencies use Node `26.x`, except `ci.yaml`.
-Jobs that run Claude read `CLAUDE_CODE_OAUTH_TOKEN` and commit through the GitHub API.
+link:ci.yaml[Continuous Integration] runs on pull requests and on pushes to `main` or a `vX.Y.x` maintenance branch.
+It installs dependencies, runs `npm run lint:build`, and builds the distribution with `npm run dist`
+on Node.js `22.x`, `24.x`, and `26.x`.
 
-== ci.yaml (Continuous Integration)
+== Pull request automation
 
-`ci.yaml` builds the package on every pull request, on a push to `main`, or on a push to a `vX.Y.x` branch.
-The job runs once for Node versions `22.x`, `24.x`, and `26.x`.
+A _Claude issue PR_ is a pull request Claude opens for an issue from a `claude-issue-<number>-...` branch.
+A _Renovate PR_ is a pull request Renovate opens to update a dependency.
 
-== dependency-review.yaml (Dependency Review)
+=== Claude
 
-`dependency-review.yaml` runs a review by Claude when Renovate opens, reopens, and updates a Renovate PR;
-or when the `claude-review` label is added to the PR.
-Claude follows the `update-dependency` skill and may push one signed follow-up commit.
-When the job succeeds, it triggers `codex-review.yaml`.
+link:claude.yaml[Claude] handles maintainer `@claude` requests in issue bodies, comments, and pull request reviews.
+A maintainer can also start it by adding the `claude` label to an issue.
+For release issues and Publish PRs, use <<publish-pr,Publish PR>>.
 
-== claude.yaml (Claude)
+Once Claude opens a PR for an issue, post follow-up requests on the PR so Claude can continue on its branch.
+A follow-up on the issue prompts Claude to redirect the maintainer to the PR.
 
-`claude.yaml` runs on a Claude mention, or when a maintainer adds the `claude` label to an issue.
-It skips release issues and Publish PRs, which `publish-pr.yaml` handles.
-For an issue, Claude opens a Claude issue PR.
-Ask for follow-ups on the Claude issue PR, where Claude continues on the same branch.
-A run on the issue checks out `main` and cannot commit.
-This workflow and `codex-review.yaml` share the concurrency group `claude-<number>`,
-so only one of them pushes at a time.
-`<number>` is the issue number for a Claude issue PR, and the pull request number otherwise.
+Claude and Codex Review share the `claude-<number>` concurrency group to serialize writes to the branch.
+For work on an issue or its Claude issue PR, the group uses the issue number.
+For other PRs, it uses the pull request number.
 
-== codex-review.yaml (Codex Review)
+=== Renovate and dependency review
 
-`codex-review.yaml` runs when Codex posts or edits its summary on a Renovate PR or a Claude issue PR,
-and after `dependency-review.yaml` succeeds.
-Each Codex review of a new commit is one round.
-Claude fixes the open findings in rounds 1 and 2.
-In round 3, the workflow only reports them.
-When a review fails, or the workflow cannot read the summary, it comments and adds `help wanted`.
+The link:../../renovate.json[Renovate configuration] opens one PR per dependency and leaves merging to maintainers.
+Its `bump` strategy updates the version range in `package.json` along with the lockfile.
+Renovate adds `help wanted` to major, peer dependency, and TypeScript updates.
+Use `renovate-regenerate` to have Renovate recreate the branch.
 
-== codex-watchdog.yaml (Codex Review Watchdog)
+link:dependency-review.yaml[Dependency Review] runs when Renovate opens, reopens, or updates one of its PRs.
+Add `claude-review` to rerun the review.
+Claude follows the `update-dependency` skill and may push a signed follow-up commit.
+A successful run starts Codex Review.
 
-`codex-watchdog.yaml` runs every hour, and a maintainer can run it by hand.
-It checks open Renovate PRs and Claude issue PRs.
-When the latest commit is at least two hours old and has no Codex review,
-it comments and adds `help wanted`, once per commit.
+=== Codex review
 
-== publish-pr.yaml (Publish PR)
+link:codex-review.yaml[Codex Review] reads new or edited Codex summaries on Renovate PRs and Claude issue PRs.
+After a successful Dependency Review run, it reads the latest summary again.
 
-`publish-pr.yaml` runs when a maintainer adds the `claude` label to an open release issue,
-or writes a Claude mention on the Publish PR.
-The job stops when the version's tag already exists, or when the Publish PR for that version is already merged.
-If `publish-vX.Y.Z` already exists, Claude continues on it.
-Claude commits one change titled `Publish vX.Y.Z`.
-That commit may change only `package.json` (the version), `package-lock.json`, `CHANGELOG.adoc`,
-`README.adoc`, `README.md`, and `ROADMAP.adoc`.
-This workflow does not create the tag, and it does not publish to npm.
+On a Claude issue PR, each distinct commit Codex reviews counts as one round.
+On a Renovate PR, reviews through the end of the latest Dependency Review run count together as round 1
+when the run succeeded and its commit is still on the PR.
+Each later reviewed commit adds a round.
+Claude can fix open findings in rounds 1 and 2.
+From round 3 onward, the workflow reports any remaining findings.
+A failed review or an unreadable summary results in a comment and the `help wanted` label.
 
-== publish.yaml (Publish)
+=== Codex review watchdog
 
-`publish.yaml` publishes a new version of the package when a tag matching `v*` is pushed.
-The tag must be annotated, GitHub must verify its signature, and the commit must be on `main` or on `vX.Y.x`.
-`package.json` must carry that version, and `CHANGELOG.adoc` must contain a section for it.
-The job runs `lint:build` and `dist`, then publishes `./dist` with provenance.
-It signs in to npm with GitHub's OIDC token.
-The npm dist-tag is one of the following:
+link:codex-watchdog.yaml[Codex Review Watchdog] checks open Renovate PRs and Claude issue PRs every hour.
+Maintainers can also run it manually.
+If a PR's latest commit is at least two hours old and has no Codex review,
+the workflow comments and adds `help wanted`.
+It flags each commit once.
 
-* `next`, for a prerelease `vX.Y.Z-<id>`, on any branch
-* `latest`, for any other release on `main`
-* `backport-X.Y`, for any other release on `vX.Y.x`
+== Releases
 
-This workflow does not create a GitHub Release; the maintainer creates it by hand.
-Do not rename this file: npm trusted publishing is bound to the name `publish.yaml`.
+A _release issue_ is titled `Release @perfective/build vX.Y.Z`.
+A _Publish PR_ comes from the `publish-vX.Y.Z` branch for that release.
 
-== renovate.json
+[[publish-pr]]
+=== Prepare the release PR
 
-`renovate.json` makes Renovate open one pull request per dependency, with no automerge.
-`rangeStrategy` is `bump`, so the version pin in `package.json` moves together with the lockfile.
-A major update, a peer dependency update, and a TypeScript update receive the `help wanted` label.
-The label `renovate-regenerate` tells Renovate to recreate the branch.
+To approve a release, add the `claude` label to its open release issue.
+link:publish-pr.yaml[Publish PR] prepares a `Publish vX.Y.Z` commit and opens a PR.
+The initial commit updates the version in `package.json` and can also update `package-lock.json`,
+`CHANGELOG.adoc`, `README.adoc`, `README.md`, and `ROADMAP.adoc`.
+
+To request a fix, re-add `claude` on the release issue or post an `@claude` request on the Publish PR.
+The workflow reuses the existing release branch and commits any fixes there.
+It stops if the version tag already exists or the Publish PR has been merged.
+
+=== Publish to npm
+
+After merging the Publish PR, the maintainer signs and pushes the release tag.
+A push of a `v*` tag starts link:publish.yaml[Publish].
+The workflow checks that the tag is annotated, GitHub verifies its signature,
+and the tagged commit is on `main` or a `vX.Y.x` maintenance branch.
+The version must match `package.json` and have a section in `CHANGELOG.adoc`.
+
+The workflow runs `npm run lint:build` and `npm run dist`, then publishes `./dist` with provenance.
+It authenticates to npm through GitHub OIDC and skips versions that npm already has.
+The npm dist-tag depends on the release version and branch.
+
+* `next` for a prerelease such as `vX.Y.Z-<id>` on either eligible branch.
+* `latest` for a stable release on `main`.
+* `backport-X.Y` for a stable release on `vX.Y.x`.
+
+The maintainer creates the GitHub Release manually after npm publishing.
+Keep the filename `publish.yaml` because npm trusted publishing is bound to it.
