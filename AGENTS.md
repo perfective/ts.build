@@ -194,7 +194,7 @@ Gulp overrides `module` per task; do not assume `tsconfig.strict.json`’s `modu
 
 ## Dependency maintenance
 
-Config: `renovate.json`.
+Config is in [`renovate.json`](renovate.json).
 Renovate opens **one PR per dependency** (no automerge).
 It does not migrate configs.
 `rangeStrategy` is `bump` so in-range updates also raise the pin in `package.json`
@@ -503,27 +503,47 @@ Codex reads this section when it reviews a pull request.
 
 ## Workflows
 
-- `Claude` (`.github/workflows/claude.yaml`) runs Claude Code on an `@claude` mention
-  in an issue, a PR comment, or a PR review, or when a maintainer adds the `claude` label to an issue
-  that is not a release issue (see "Git and releases").
-  It installs dependencies on Node `26.x`.
+All jobs run on `ubuntu-latest`.
+Jobs that install dependencies use Node.js `26.x` outside the CI matrix.
+Claude jobs use `CLAUDE_CODE_OAUTH_TOKEN` and make signed commits through the GitHub API.
+
+### Continuous integration
+
+[Continuous Integration](.github/workflows/ci.yaml) runs on pull requests and on pushes to `main`
+or a `vX.Y.x` maintenance branch.
+It runs `npm ci`, `npm run lint:build`, and `npm run dist` on Node.js `22.x`, `24.x`, and `26.x`.
+
+### Pull request automation
+
+- [Claude](.github/workflows/claude.yaml) handles maintainer `@claude` requests in issue bodies,
+  comments, and PR reviews, as well as the `claude` label on ordinary issues.
+  Once Claude opens a PR for an issue, post follow-up requests on the PR so Claude can continue on its branch.
   Claude may run `npm run lint`, `npm run lint:build`, and `npm run dist`.
-- `Dependency Review` (`.github/workflows/dependency-review.yaml`) runs Claude Code
-  with the `update-dependency` skill on Renovate PRs (see "Dependency maintenance").
-- `Codex Review` (`.github/workflows/codex-review.yaml`) runs on Codex's summary comment,
-  and when a Dependency Review run succeeds.
-  It acts on Renovate PRs and on Claude issue PRs.
-  Claude addresses the findings, and the next push is reviewed again,
-  until Codex has no unresolved findings or the review cap is reached.
-- `Codex Review Watchdog` (`.github/workflows/codex-watchdog.yaml`) runs hourly.
-  It flags a Renovate PR or a Claude issue PR whose head has had no Codex review for 2 hours.
-- `Publish PR` (`.github/workflows/publish-pr.yaml`) opens the Publish PR when `claude` is added
-  to a release issue, and continues on the existing `publish-vX.Y.Z` branch when the label is re-added
-  or a maintainer mentions `@claude` on the Publish PR (see "Git and releases").
-  `Publish` (`.github/workflows/publish.yaml`) runs on a signed `v*` tag.
-  The general Claude workflow does not start them, and it does not run on the release issue or the Publish PR.
-- CI (`.github/workflows/ci.yaml`) runs `npm ci`, `lint:build`, and `dist` on Node 22.x, 24.x, and 26.x
-  for PRs and pushes to `main` / `vX.Y.x`.
+  See [Git and releases](#git-and-releases-this-repo) for branch and commit rules.
+- [Dependency Review](.github/workflows/dependency-review.yaml) runs the `update-dependency` skill
+  when Renovate opens, reopens, or updates one of its PRs.
+  Add `claude-review` to rerun it.
+  See [Dependency maintenance](#dependency-maintenance) for Renovate configuration and review rules.
+- [Codex Review](.github/workflows/codex-review.yaml) reads new or edited Codex summaries
+  on Renovate PRs and Claude issue PRs.
+  A successful Dependency Review run also triggers it to read the latest summary.
+  Claude can fix findings in rounds 1 and 2. From round 3 onward, the workflow reports remaining findings.
+  See [Dependency maintenance](#dependency-maintenance) for round counting, concurrency, and failure handling.
+- [Codex Review Watchdog](.github/workflows/codex-watchdog.yaml) runs hourly or on manual dispatch.
+  It comments and adds `help wanted` once per head commit when an open Renovate PR or Claude issue PR
+  has gone at least two hours without a Codex review of that commit.
+
+### Releases
+
+- [Publish PR](.github/workflows/publish-pr.yaml) starts when a maintainer adds `claude` to an open
+  `Release @perfective/build vX.Y.Z` issue.
+  It prepares the `Publish vX.Y.Z` commit and opens the PR from `publish-vX.Y.Z`.
+  Re-add the label or post an `@claude` request on the Publish PR to continue on that branch.
+- [Publish](.github/workflows/publish.yaml) starts on a `v*` tag push.
+  It verifies the tag, builds the package, and uses GitHub OIDC to publish `./dist` to npm with provenance.
+  The maintainer creates the GitHub Release manually.
+
+See [Git and releases](#git-and-releases-this-repo) for release files, tag checks, and npm dist-tags.
 
 ## Verifying changes
 
@@ -542,8 +562,6 @@ npm run dist
 
 `lint` runs `prettier --write .` (fixes files); `lint:build` is the CI check (`prettier --check .`).
 `dist` runs the default Gulp task; individual tasks: `npx gulp clean`, `npx gulp documentation`.
-CI (`.github/workflows/ci.yaml`) runs `npm ci`, `lint:build`, `dist` on Node 22.x/24.x/26.x
-for PRs and pushes to `main` / `vX.Y.x`.
 
 There are no tests here yet (tech debt).
 After `dist`, link `./dist` into a consumer (`ts.common` or `eslint-config`) with `npm link`
