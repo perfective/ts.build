@@ -10,7 +10,14 @@
   Do not change unrelated changes.
 - Branch rules:
     - Do all work on a feature branch from `main`.
-      Give the branch a `<type>/<topic>` name, for example `docs/jest-configuration` or `fix/import-extension`.
+    - Each feature branch name starts with `feature/`:
+        - For a GitHub issue, always use `feature/issue-<number>`, for example `feature/issue-12`.
+        - For other work, use `feature/<type>-<topic>`.
+          Start the topic with the type of change, for example `feature/docs-branch-workflow`
+          or `feature/fix-import-extension`.
+    - Branches that tools make keep their own names:
+      Renovate (`renovate/...`), the Publish PR workflow (`publish-vX.Y.Z`),
+      and Claude CI (`claude-issue-<number>-...`).
     - Do not use one long-lived branch for each agent.
     - Each feature branch becomes one PR.
       The maintainer squash-merges the PR into `main`.
@@ -20,7 +27,7 @@
     - Agents work in a separate Git worktree, not in the shared checkout of the maintainer.
       Do not switch the branch of the shared checkout.
     - Put the worktree outside the repository directory, for example
-      `git worktree add -b docs/<topic> ../ts.build-worktrees/<topic> main`.
+      `git worktree add -b feature/<name> ../ts.build-worktrees/<name> main`.
       Prettier formats each file under the repository root and does not read `.git/info/exclude`.
       Thus, a worktree inside the repository gets changes from `npm run lint`.
     - Run `npm ci` in each new worktree.
