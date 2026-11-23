@@ -398,6 +398,9 @@ from a branch in this repository, drafts included.
   The job never checks out or runs PR code.
 - The job fails when the token is missing or when Cursor does not acknowledge the request within 5 minutes.
 - Fork PRs are skipped, so they do not use the maintainer's Cursor usage.
+- A head that `cursor[bot]` pushed is skipped.
+  Thus, a review that pushes a commit cannot start a chain of reviews.
+  The next push by another author gets a review.
 - Cursor posts the review as `cursor[bot]`.
   The maintainer handles the findings until a fix loop exists.
 
