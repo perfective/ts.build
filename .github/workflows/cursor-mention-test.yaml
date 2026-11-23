@@ -1,0 +1,27 @@
+name: Cursor Mention Test
+on:
+    # Test only, never merged: checks whether Cursor starts an agent for a comment
+    # that `github-actions[bot]` posts with GITHUB_TOKEN.
+    pull_request:
+        types: [opened]
+
+permissions: {}
+
+jobs:
+    mention:
+        name: Post the Cursor mention
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        permissions:
+            pull-requests: write # Post the comment
+        steps:
+            - name: Post @cursoragent review as github-actions[bot]
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  GH_REPO: ${{ github.repository }}
+                  NUMBER: ${{ github.event.pull_request.number }}
+              run: |
+                  set -euo pipefail
+                  gh pr comment "${NUMBER}" --body "$(printf '%s\n\n%s\n' \
+                      '@cursoragent review' \
+                      '<!-- cursor-mention-test: posted by github-actions[bot] with GITHUB_TOKEN -->')"
