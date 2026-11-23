@@ -390,8 +390,10 @@ from a branch in this repository, drafts included.
   Thus, the job posts the comment with the maintainer's fine-grained token, `CURSOR_REVIEW_TOKEN`.
   The review uses the maintainer's included Cursor usage.
   The Cloud Agents API is not used, because its runs bill from prepaid credit.
-- The token has access to this repository only, with Issues: write.
-  It is a secret of the `cursor-review` environment, and that environment allows only `main`.
+- The token has access to this repository only, with Issues: write and Pull requests: write.
+  A comment on a PR needs Pull requests: write: with Issues: write only, GitHub refuses it with a 403.
+  With Pull requests: write, the token can also approve a PR as the maintainer.
+  Thus, keep the token only as a secret of the `cursor-review` environment, which allows only `main`.
   The job uses `pull_request_target`, so it runs from `main`, and a workflow that a PR changes cannot read the token.
   The job never checks out or runs PR code.
 - The job fails when the token is missing or when Cursor does not acknowledge the request within 5 minutes.
