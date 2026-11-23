@@ -22,7 +22,9 @@ Tagging and `npm publish` stay with the maintainer: `publish.yaml` publishes to 
 after the signed tag is pushed.
 The maintainer creates the GitHub Release manually.
 
-The result of a local run is one `Publish vX.Y.Z` commit on a feature branch from `main` (for example `publish-vX.Y.Z`).
+The result of a local run is one `Publish vX.Y.Z` commit on a `publish-vX.Y.Z` branch from `main`.
+Do not use a `feature/` name: the workflows find a Publish PR from the `publish-vX.Y.Z` name
+(see "Branch rules" in `AGENTS.md`).
 
 ## 1. Collect the changes
 
