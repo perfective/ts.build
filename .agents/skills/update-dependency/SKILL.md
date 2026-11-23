@@ -151,8 +151,9 @@ All commands must pass.
 This repository has no tests.
 Do not add a test runner to make a dependency update pass.
 
-The change can affect the emitted output or a shared preset.
-In that case, write in the report that a consumer link check (`ts.common` or `eslint-config`) is still necessary.
+Some changes affect the emitted output or a shared preset.
+For these changes only, write in the report that a consumer link check (`ts.common` or `eslint-config`)
+is still necessary.
 In CI, do not wait for that check before the commit.
 
 `npm run lint` runs Prettier in write mode.

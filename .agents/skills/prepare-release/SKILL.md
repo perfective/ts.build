@@ -19,9 +19,14 @@ On GitHub, the release process is different:
 
 - A release issue is an open issue with the title `Release @perfective/build vX.Y.Z`.
 - When the maintainer adds the `claude` label to that issue, `.github/workflows/publish-pr.yaml` runs.
-- To continue on an existing `publish-vX.Y.Z` branch, the maintainer adds the label again
-  or posts `@claude` on the Publish PR.
-  Then the workflow adds a fix commit to that PR.
+- To continue on an existing `publish-vX.Y.Z` branch, the maintainer does one of these steps:
+    - Remove the `claude` label from the release issue, and then add it again.
+      The workflow starts only when the label is added.
+      If the label is already on the issue, the workflow does not start.
+    - Post `@claude` on the Publish PR.
+
+    Then the workflow adds a fix commit to that PR.
+
 - The general Claude workflow skips the Publish PR,
   and it skips an issue that has the `release` label or a `Release @perfective/build v` title.
 
