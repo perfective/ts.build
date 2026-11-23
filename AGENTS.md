@@ -18,7 +18,7 @@
 - Write deferred work in [ROADMAP.adoc](ROADMAP.adoc).
   The roadmap contains proposals for future work.
 - Read the skills in `.agents/skills/`.
-  Claude Code uses the links in `.claude/skills`.
+  Claude Code reads them through the `.claude/skills` symlink.
 
 ## Package and build
 
@@ -346,8 +346,7 @@ The job needs the Claude GitHub App and `CLAUDE_CODE_OAUTH_TOKEN`.
 - If the workflow files in the test merge are different from `main`,
   the action can report success but skip Claude.
   The job finds skipped Claude runs.
-- A skip or a failed earlier step gets a report.
-  On Renovate PRs, it also gets `help wanted`.
+- A skip or a failed earlier step gets a report and `help wanted`.
 - A failed Claude step makes the job fail directly.
 - If the PR is based on an old `main`, use `renovate-regenerate`.
 - The `claude-review` label runs the same test merge again.
@@ -360,7 +359,7 @@ The maintainer reviews Publish PRs.
 
 - Enable Codex automatic review for all PRs on each push.
 - Open issue PRs as ready for review.
-- After the Claude step, the workflow marks a draft PR as ready, also when the step fails.
+- After the Claude step, the Claude workflow marks a draft issue PR as ready, also when the step fails.
 - The workflows use only automatic reviews.
   They do not post a review trigger.
   They do not use a personal access token.
@@ -417,7 +416,7 @@ Thread replies:
 Concurrency:
 
 - The `codex-review-route-<number>` group puts the routes for each PR in a queue.
-- The general Claude workflow and the Codex fix jobs share the `claude-<number>` group.
+- The jobs of the general Claude workflow and the Codex `report` and `fix` jobs share the `claude-<number>` group.
   This group runs those jobs one at a time for the same issue or PR.
 - For Claude issue work, use the issue number.
   For other work, use the PR number.
