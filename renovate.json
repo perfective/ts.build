@@ -1,6 +1,6 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": ["config:recommended", "security:minimumReleaseAgeNpm"],
+    "extends": ["config:recommended", "security:minimumReleaseAgeNpm", "helpers:pinGitHubActionDigests"],
     "ignorePresets": ["group:monorepos", "group:recommended"],
     "labels": ["dependencies"],
     "automerge": false,
@@ -30,7 +30,7 @@
             "addLabels": ["help wanted"]
         },
         {
-            "description": "GitHub Actions: low-risk, weekly batch visibility",
+            "description": "GitHub Actions: pinned to commit SHAs, updated weekly",
             "matchManagers": ["github-actions"],
             "extends": ["schedule:weekly"]
         }
