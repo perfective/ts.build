@@ -16,7 +16,8 @@
           Start the topic with the type of change, for example `feature/docs-branch-workflow`
           or `feature/fix-import-extension`.
     - Branches that tools make keep their own names:
-      Renovate (`renovate/...`) and Claude CI (`claude-issue-<number>-...`).
+      Renovate (`renovate/...`), Cursor (`cursor/...`), and Publish PRs (`publish-vX.Y.Z`).
+      Claude CI issue branches use the feature rule: `feature/issue-<number>-...`.
     - A Publish branch always has the name `publish-vX.Y.Z`, also for a local release.
       The workflows find a Publish PR from this name.
       With another name, the general Claude workflow does not skip the PR,
@@ -376,6 +377,27 @@ The job needs the Claude GitHub App and `CLAUDE_CODE_OAUTH_TOKEN`.
 - If the PR is based on an old `main`, use `renovate-regenerate`.
 - The `claude-review` label runs the same test merge again.
 
+### Cursor Review
+
+[Cursor Review](.github/workflows/cursor-review.yaml) requests a Cursor review of each new head of a PR
+from a branch in this repository, drafts included.
+
+- The job posts one `@cursoragent review` comment for each head SHA.
+  The comment has the review-only instructions and a hidden `cursor-review` marker with the SHA.
+  A re-run does not post a second comment for the same head.
+- Cursor ignores `@cursoragent` comments from `github-actions[bot]`.
+  Thus, the job posts the comment with the maintainer's fine-grained token, `CURSOR_REVIEW_TOKEN`.
+  The review uses the maintainer's included Cursor usage.
+  The Cloud Agents API is not used, because its runs bill from prepaid credit.
+- The token has access to this repository only, with Issues: write.
+  It is a secret of the `cursor-review` environment, and that environment allows only `main`.
+  The job uses `pull_request_target`, so it runs from `main`, and a workflow that a PR changes cannot read the token.
+  The job never checks out or runs PR code.
+- The job fails when the token is missing or when Cursor does not acknowledge the request within 5 minutes.
+- Fork PRs are skipped, so they do not use the maintainer's Cursor usage.
+- Cursor posts the review as `cursor[bot]`.
+  The maintainer handles the findings until a fix loop exists.
+
 ### Workflow Change
 
 [Workflow Change](.github/workflows/workflow-change.yaml) runs on PRs that change `.github/workflows/**`.
@@ -405,12 +427,12 @@ Thus, the maintainer must examine each workflow change.
 - Dependency Review uses its own `dependency-review-<number>` group.
   A newer review cancels the running review in that group.
 - Workflow Change uses its own `workflow-change-<number>` group, and a newer run cancels the running one.
+- Cursor Review uses its own `cursor-review-<number>` group, and a newer head cancels the waiting request.
 
 ### Review comments
 
-Dependency Review is the only automated review.
-No workflow reviews a PR after Claude.
-The maintainer reviews the Dependency Review results, Claude issue PRs, and Publish PRs.
+Dependency Review reviews Renovate PRs, and Cursor Review requests a Cursor review of every PR head.
+The maintainer reviews the results, Claude issue PRs, and Publish PRs.
 
 On a Claude issue PR, use the issue number in the branch name to find the task.
 Only comments from human `OWNER`, `MEMBER`, or `COLLABORATOR` users can change the scope of the issue.

@@ -1,6 +1,6 @@
 ---
 description: When asked to review a pull request, comment on the PR before summarizing in chat
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Pull request reviews
@@ -16,6 +16,10 @@ When the user asks to review a pull request, comment on the PR first, then summa
    - Include the review link.
 
 Do not finish a review in chat only.
+
+For a review that the Cursor Review workflow requests (`@cursoragent review` with a `cursor-review` marker),
+follow the instructions in that comment: post one COMMENT review and change nothing.
+End the review with a blank line and `*Written by Cursor*`, as "Reviewer signatures" in `AGENTS.md` describes.
 
 ```markdown
 # Review order
