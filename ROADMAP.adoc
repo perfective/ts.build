@@ -10,6 +10,17 @@ Order matters: finish each stage before starting the next unless the maintainer 
 . Quality control, then major changes (sections below).
 
 
+== Automated PR review
+
+The Codex review loop is removed, so no workflow reviews Renovate PRs or Claude issue PRs after Claude.
+
+* Choose a second reviewer that runs on subscription pricing.
+Cursor Bugbot and Cursor Automations bill outside the seat usage, so they do not qualify.
+The Cursor CLI in GitHub Actions qualifies only if a test run with `CURSOR_API_KEY` uses the included usage.
+Otherwise, use a review-only Claude job.
+* Then add a fix loop for the findings (Claude fixes in rounds 1 and 2) and resolve the fixed threads.
+
+
 == Quality control
 
 Required before any major changes.
