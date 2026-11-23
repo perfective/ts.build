@@ -4,7 +4,7 @@
 
 ## Starting work
 
-- Run all commands from the repository root.
+- Run commands from the repository root unless a step names another directory.
   On a new checkout, run `npm ci`.
 - Before you edit and before you commit, run `git status --short` and `git branch --show-current`.
   Do not change unrelated changes.
@@ -39,9 +39,10 @@ The root barrel is `src/index.js`.
 The source of this package is ESM JavaScript in `src/`.
 The `gulpfile.js` of this package does these steps:
 
-1.  It copies the JS files, the TypeScript config, and the docs.
+1.  It cleans `dist/` and copies the JS files.
 2.  It makes the package metadata.
-3.  It runs Asciidoctor.
+3.  It copies the TypeScript config, the license, the changelog, and the READMEs.
+4.  It runs Asciidoctor.
 
 The build tasks below compile consumer packages, not this package.
 The `require` export conditions of this package point to ESM files.
@@ -69,7 +70,7 @@ For each file, it writes `dist/<dir>/package.json` with the name `<scope>/<dir>`
 
 `packageJson` then reads the `dist/*/package.json` files.
 It makes subpath exports from those directories.
-It removes `scripts` and `devDependencies`.
+It replaces `scripts` with an empty object and removes `devDependencies`.
 It uses these default values:
 
 - `main`: `./index.cjs`.
@@ -79,9 +80,9 @@ It uses these default values:
 Use `extraExports` to add manual entries.
 This package uses `extraExports` to export `./tsconfig.strict.json` under the `default` condition.
 Keep the `default` condition.
-`tsc` and `eslint-import-resolver-typescript` v4 need it to resolve `extends`.
-A `require`-only entry stops `extends` resolution.
-Then consumers get `import-x/no-unresolved` errors.
+TypeScript 6.0.3 can resolve `extends` with either `default` or `require`.
+`eslint-import-resolver-typescript` v4 uses `default` as a fallback for `extends`.
+A `require`-only entry can cause `import-x/no-unresolved` errors in consumers that extend this config.
 
 ### Babel plugins
 
@@ -194,7 +195,8 @@ npm dist-tags:
 
 ## Dependency maintenance
 
-[Renovate](renovate.json) opens one PR for each dependency.
+[Renovate](renovate.json) opens PRs for individual dependency updates.
+It can open separate PRs for major and minor updates to the same dependency.
 Maintainers merge the PRs and do the config migrations.
 The `bump` strategy updates the `package.json` range and the lockfile together.
 The Dependency Dashboard is the backlog.
@@ -246,9 +248,9 @@ The Dependency Dashboard is the backlog.
     - If the body has bullets, add a blank line before the trailers.
 
 Renovate stops updates to a branch after a follow-up commit.
-For a newer version or to solve conflicts, use the rebase checkbox (`renovate-regenerate`).
-The checkbox makes the branch again.
-It removes the follow-up commits and sets the review rounds to zero.
+For a newer version or to solve conflicts, tick the rebase/retry checkbox or add the `renovate-regenerate` label.
+Either action lets Renovate recreate the branch and remove the follow-up commits.
+Codex Review counts reviewed commits still on the PR and uses the latest qualifying Dependency Review run.
 Claude CI cannot merge or rebase.
 Claude CI asks the maintainer to use the checkbox.
 
@@ -281,11 +283,11 @@ The [Claude](.github/workflows/claude.yaml) workflow does maintainer `@claude` r
 in issue bodies, comments, and PR reviews.
 A maintainer can also add the `claude` label to an ordinary issue.
 
-These items use the [release workflow](#release-process):
-
-- Issues with the `release` label.
-- Issues with a title that starts with `Release @perfective/build v`.
-- Publish PRs.
+The general Claude workflow skips issues with the `release` label,
+issues with a title that starts with `Release @perfective/build v`, and Publish PRs.
+To start the [release workflow](#release-process) from an issue,
+give the open issue a valid `Release @perfective/build vX.Y.Z` title and add the `claude` label.
+Use `@claude` on an open Publish PR to request a follow-up.
 
 The request of the maintainer sets the scope.
 Other comments are only input.
@@ -308,9 +310,9 @@ Other comments are only input.
 
 ### Dependency Review
 
-[Dependency Review](.github/workflows/dependency-review.yaml) runs the skill
-when Renovate opens, reopens, or updates a PR.
-To run it again, add the `claude-review` label.
+[Dependency Review](.github/workflows/dependency-review.yaml) runs the skill on a Renovate PR
+when `renovate[bot]` sends an `opened`, `reopened`, or `synchronize` event.
+To run the review manually, add the `claude-review` label.
 
 - Claude pushes each signed follow-up commit with the Claude GitHub App token.
   This token makes CI run.
@@ -382,20 +384,23 @@ Thread replies:
 
 - Reply to each fixed thread with the full commit SHA.
 - The workflow resolves the thread if all these conditions are true:
-    - The fix is a descendant of the reviewed commit.
-    - The reply includes the SHA.
-    - The reply does not include **NEEDS HUMAN**.
+    - The thread is open and started by Codex.
+    - The last reply is from Claude and includes the full SHA of the reviewed commit or the head after the run.
+    - The last reply does not include **NEEDS HUMAN**.
+- The workflow counts a new head as a pushed fix only if it descends from the reviewed commit.
 - For an older finding that is already fixed, reply `Already fixed in <sha>`.
   Use the full SHA of the reviewed commit.
 
 Concurrency:
 
 - The `codex-review-route-<number>` group puts the routes for each PR in a queue.
-- Claude and the fix jobs share the `claude-<number>` group.
-  Thus, only one writer uses the branch at a time.
+- The general Claude workflow and the Codex fix jobs share the `claude-<number>` group.
+  This group runs those jobs one at a time for the same issue or PR.
 - For Claude issue work, use the issue number.
   For other work, use the PR number.
 - These job groups put pending runs in a queue with `queue: max`.
+- Dependency Review uses its own `dependency-review-<number>` group.
+  A newer review cancels the running review in that group.
 
 Restart:
 
@@ -431,8 +436,9 @@ If the head commit is two hours old or older and has no Codex review,
 the job posts one **NEEDS HUMAN** comment and adds `help wanted`.
 
 - The job uses `GITHUB_TOKEN`.
-- The job flags each head only one time.
-- When Codex reviews the flagged head, the job adds a comment again.
+- The job skips a duplicate flag when its latest marker is a flag for the same head.
+- When the current head has a Codex review, the job posts a comment that clears the latest flag.
+  That flag can refer to an earlier head.
 - The job removes `help wanted` only if GitHub Actions added the label most recently, after the flag.
 
 ## Reviewer signatures
@@ -445,8 +451,8 @@ In this case, obey these rules:
 - At the end, add a blank line and an italic signature that names the agent, for example `*Written by Codex*`.
 - For a manual review trigger, put `@codex review` on the first line.
   Then add a blank line and the signature.
-- In other text, put mentions such as `@codex review` and `@claude` in backticks.
-  This prevents a workflow start.
+- In other text, refer to the agents by name without an `@` mention.
+  The Claude and Publish PR workflows check the raw text for `@claude`, including text in backticks.
 
 ## Code Review Rules
 
@@ -476,10 +482,12 @@ Other rules:
 
 To run one task, use `npx gulp clean` or `npx gulp documentation`.
 
-To check `./dist` in a consumer (`ts.common` or `eslint-config`), do these steps after `dist`:
+To check the built package in a consumer (`ts.common` or `eslint-config`), do these steps after `npm run dist`:
 
-1.  Run `npm link`.
-2.  In the consumer, run `lint:build`, `test:build` (100% coverage), and `dist`.
+1.  In this repository's `dist/` directory, run `npm link`.
+2.  In the consumer root, run `npm link @perfective/build`.
+    For a sibling checkout, `npm link ../ts.build/dist` in the consumer root does both steps.
+3.  In the consumer, run `npm run lint:build`, `npm run test:build` (100% coverage), and `npm run dist`.
 
 ## Catch-up order after this package
 
