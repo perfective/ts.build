@@ -31,7 +31,9 @@ ESM (`.js`), CommonJS (`.cjs`), and declarations (`.d.ts`).
 
 Consumers import these subpaths:
 `@perfective/build/gulp`, `/babel`, `/jest`, `/prettier`, and `/tsconfig.strict.json`.
-All current consumers use these subpaths.
+Current consumers use `/gulp`, `/babel`, `/prettier`, and `/tsconfig.strict.json`.
+`/jest` is optional: `@perfective/common` and `@perfective/eslint-config` use it;
+`@perfective/eslint-config-angular` and `@perfective/eslint-config-react` do not.
 
 The root barrel is `src/index.js`.
 The source of this package is ESM JavaScript in `src/`.
@@ -103,7 +105,8 @@ The Gulp ESM and CJS tasks send the files through `gulp-babel`.
   Keep each line at 120 characters or less.
   A long URL can be longer than the limit when it is on its own line.
 - `README.adoc` is the canonical consumer guide.
-  `README.md` is a short pointer to it.
+  `README.md` is a short overview for GitHub and npm;
+  keep it in sync with `README.adoc` on each Publish commit.
   These files show the latest published version.
     - Change these files only in the Publish commit.
     - Write pending README changes in [ROADMAP.adoc](ROADMAP.adoc).
@@ -261,7 +264,8 @@ Use the `help wanted` label for a pending maintainer decision.
   Claude removes it when a later run clears the items.
   Claude follows the label rules in the skill.
 
-Keep the labels of the three Renovate update categories until the maintainer accepts the update.
+Keep the `help wanted` label that Renovate added for a major, peer, or TypeScript update
+until the maintainer accepts the update.
 
 ## Workflows
 
@@ -367,7 +371,8 @@ Event rules:
 Fix rules:
 
 - In rounds 1 and 2, Claude can fix findings.
-- In round 3 and later rounds, the workflow only reports the remaining findings.
+- In round 3 and later rounds, the workflow posts that findings remain and adds `help wanted`.
+  It does not list the findings.
 - Existing **NEEDS HUMAN** threads wait for the maintainer.
 - If Claude pushes no commit and a thread still needs a fix,
   the workflow adds a comment and `help wanted`.
@@ -482,4 +487,4 @@ To check `./dist` in a consumer (`ts.common` or `eslint-config`), do these steps
 2.  Update `@perfective/eslint-config`.
 3.  Update `@perfective/common`.
     If necessary, patch the build kit again.
-4.  Update `eslint-config-angular` and `eslint-config-react`.
+4.  Update `@perfective/eslint-config-angular` and `@perfective/eslint-config-react`.
