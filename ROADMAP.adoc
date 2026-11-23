@@ -31,6 +31,11 @@ Required before any major changes.
 without introducing circular dependencies (`@perfective/eslint-config` depends on `@perfective/build`).
 * Add integration tests to verify that consumers (`ts.common`, `eslint-config`) still build
 (Perfective packages target 100% coverage; this repo has no tests yet).
+* If the Workflow Change check ever flags a change that nobody expected,
+move the jobs that use secrets to triggers that run from `main`
+(`workflow_run` for Dependency Review, and comment-only triggers for `claude.yaml`).
+The job that `workflow_run` starts must not check out or run the PR head,
+because it has the secret and runs from `main` with the base repository's token.
 
 
 == Major changes

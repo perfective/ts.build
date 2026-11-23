@@ -376,6 +376,25 @@ The job needs the Claude GitHub App and `CLAUDE_CODE_OAUTH_TOKEN`.
 - If the PR is based on an old `main`, use `renovate-regenerate`.
 - The `claude-review` label runs the same test merge again.
 
+### Workflow Change
+
+[Workflow Change](.github/workflows/workflow-change.yaml) runs on PRs that change `.github/workflows/**`.
+A PR from a branch in this repository runs its own version of its workflows, with the repository secrets.
+Thus, the maintainer must examine each workflow change.
+
+- The job labels the PR `workflow-change` and fails.
+  The step summary lists the changed workflow files and the commits that change them.
+- If nobody expected the change, rotate `CLAUDE_CODE_OAUTH_TOKEN` and the other repository secrets.
+- The job uses `pull_request_target`, so it runs from `main`.
+  It never checks out or runs PR code, and it uses no secrets.
+  Keep it that way: a checkout of the PR head in this job runs PR code with a write token.
+- The job runs only when the PR's diff with its base changes a workflow file.
+  A later push that drops that change from the diff does not start the job, so the latest head has no red check.
+  The `workflow-change` label stays, and it is the signal that remains.
+- The check does not turn green after the maintainer examines the change.
+- Do not make `Flag workflow changes` a required check.
+  It always fails on a workflow change, and a required check that is filtered by path stays pending on other PRs.
+
 ### Concurrency
 
 - The `claude` job of the Claude workflow uses the `claude-<number>` group.
@@ -385,6 +404,7 @@ The job needs the Claude GitHub App and `CLAUDE_CODE_OAUTH_TOKEN`.
 - The group puts pending runs in a queue with `queue: max`.
 - Dependency Review uses its own `dependency-review-<number>` group.
   A newer review cancels the running review in that group.
+- Workflow Change uses its own `workflow-change-<number>` group, and a newer run cancels the running one.
 
 ### Review comments
 
