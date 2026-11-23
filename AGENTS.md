@@ -56,17 +56,19 @@ The `require` export conditions of this package point to ESM files.
   Then it runs Babel and changes the output extension to `.cjs`.
 - `typescript.tsDeclarations()` writes `.d.ts` files and keeps the comments.
 - `typescript.tsBuild()` runs a plain TypeScript emit.
-- Run `packageJson.subPackageJson(scopeName, opts)` first.
+- Run `packageJson.subPackageJson(packageName, opts)` first.
   Then run `packageJson.packageJson(opts, overrides, extraExports)`.
 
 The default TypeScript config is `./tsconfig.build.json`.
 The default output directory is `./dist`.
-Each task sets its own emit settings, including the `module` overrides above.
+`esmBuild`, `cjsBuild`, and `tsDeclarations` set their own emit settings, including the `module` overrides above.
+`tsBuild` uses the TypeScript config without changes.
 
 ### Package exports
 
 `subPackageJson` finds each `dist/*/index.js` file.
-For each file, it writes `dist/<dir>/package.json` with the name `<scope>/<dir>`.
+For each file, it writes `dist/<dir>/package.json` with the name `<packageName>/<dir>`,
+for example `@perfective/build/babel`.
 
 `packageJson` then reads the `dist/*/package.json` files.
 It makes subpath exports from those directories.
@@ -92,9 +94,10 @@ The Gulp ESM and CJS tasks send the files through `gulp-babel`.
 - `babelPluginImportExtension(ext = 'mjs')` is a factory.
     - Consumers use `'js'` for ESM output.
     - The plugin examines paths relative to the Babel filename.
-      Then it selects `./x.<ext>` or `./x/index.<ext>`.
+      If `./x` is a directory, it selects `./x/index.<ext>`.
+      Otherwise, it selects `./x.<ext>`.
     - When `outDir` is set, `gulp-typescript` gives a filename in the output tree.
-      Thus, on a clean build, the plugin can fail to find the file.
+      Thus, on a clean build, the plugin cannot find the directory, and `./dir` becomes `./dir.<ext>`.
 - Use `babelPluginRequireExtension` directly.
   It changes variable initializers, for example `var x = require('./y')`.
   For known limits, refer to [ROADMAP.adoc](ROADMAP.adoc).
@@ -163,11 +166,14 @@ Release steps:
     When the issue is ready, the maintainer adds the `claude` label.
 2.  The [Publish PR](.github/workflows/publish-pr.yaml) workflow updates the release files.
     - It opens a PR from the `publish-vX.Y.Z` branch.
-      The PR has a signed Publish commit and `Closes #N`.
-    - It synchronizes the READMEs and the peer ranges.
+      The PR has a signed Publish commit.
+      When the release issue is open, the PR body has `Closes #N`.
+    - It keeps `README.adoc` and `README.md` in sync with each other and with the peer ranges in `package.json`.
+      It does not change the peer ranges.
       It marks the delivered roadmap items.
     - It stops if the tag exists or if the Publish PR is merged.
-    - To continue on the same branch, add `claude` to the issue again, or post an `@claude` request on the PR.
+    - To continue on the same branch, remove the `claude` label from the issue and add it again,
+      or post an `@claude` request on the PR.
     - Claude uses the same tools and commits each fix separately.
       Claude reports fixes outside the permitted files as **NEEDS HUMAN**.
     - Claude opens the PR if necessary.
