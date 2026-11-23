@@ -83,8 +83,8 @@ Use `extraExports` to add manual entries.
 This package uses `extraExports` to export `./tsconfig.strict.json` under the `default` condition.
 Keep the `default` condition.
 TypeScript 6.0.3 can resolve `extends` with either `default` or `require`.
-`eslint-import-resolver-typescript` v4 uses `default` as a fallback for `extends`.
-A `require`-only entry can cause `import-x/no-unresolved` errors in consumers that extend this config.
+When `unrs-resolver` loads a TypeScript config, it uses the `node` and `import` conditions for `extends`.
+The `default` condition also works in that resolver.
 
 ### Babel plugins
 
@@ -112,7 +112,7 @@ The Gulp ESM and CJS tasks send the files through `gulp-babel`.
   `README.md` is a short overview for GitHub and npm;
   keep it in sync with `README.adoc` on each Publish commit.
   These files show the latest published version.
-    - Change these files only in the Publish commit.
+    - Change these files only in the Publish commit or a follow-up commit on the Publish PR.
     - Write pending README changes in [ROADMAP.adoc](ROADMAP.adoc).
 - When development rules or designs change, update `AGENTS.md`, `ROADMAP.adoc`, and `specs/**`.
   Do not put these files in `dist/`.
@@ -360,8 +360,9 @@ Review state:
 
 Review rounds:
 
-- On a Renovate PR, the first round covers the commits reviewed through the end of the latest Dependency Review run.
-  This is true only if that run was successful and its commit is still on the PR.
+- On a Renovate PR, the first round groups Codex-reviewed commits whose committer dates
+  are at or before the `updated_at` timestamp of the latest completed Dependency Review run, excluding skipped runs.
+  The run must have succeeded, and its commit must still be on the PR.
 - A failed or cancelled run blocks the loop.
 - Each subsequent different commit that Codex reviews adds one round.
 - On a Claude issue PR, each reviewed commit counts as one round.
@@ -417,9 +418,9 @@ On a Claude issue PR, use the issue number in the branch name to find the task.
 Only comments from human `OWNER`, `MEMBER`, or `COLLABORATOR` users can change the scope of the issue.
 If the issue is not readable or a finding is out of scope, report **NEEDS HUMAN**.
 An `@claude` follow-up on the PR can continue the loop.
-A later job resolves the threads if both conditions are true:
+If the follow-up pushes commits, a later job resolves an open Codex thread if both conditions are true:
 
-- The last Claude reply names an exact commit from that run.
+- The last reply is from Claude and includes the full SHA of a commit pushed in that run.
 - The reply does not include **NEEDS HUMAN**.
 
 Codex reviews the new commits automatically.
@@ -430,7 +431,9 @@ When you handle review comments, do these steps:
 1.  Make sure that the fix is correct.
 2.  Push a follow-up commit.
 3.  Reply with the change and the full SHA.
-4.  Resolve the threads that a fix or a maintainer decision settles.
+4.  Outside CI, resolve the threads that a fix or a maintainer decision settles.
+
+For fixes made in CI, leave thread resolution to the workflow.
 
 For a decision, report **NEEDS HUMAN** and record the answer.
 
@@ -443,7 +446,8 @@ the job posts one **NEEDS HUMAN** comment and adds `help wanted`.
 
 - The job uses `GITHUB_TOKEN`.
 - The job skips a duplicate flag when its latest marker is a flag for the same head.
-- When the current head has a Codex review, the job posts a comment that clears the latest flag.
+- When the current head is at least two hours old and has a Codex review,
+  the job posts a comment that clears the latest flag.
   That flag can refer to an earlier head.
 - The job removes `help wanted` only if GitHub Actions added the label most recently, after the flag.
 
