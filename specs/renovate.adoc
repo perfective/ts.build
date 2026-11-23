@@ -246,6 +246,7 @@ at most two attempts per idempotency key, then needs human.
 * `specs/` — design specifications for this repository (not published consumer docs).
 * `renovate.json` — live Renovate configuration (pilot).
 * `.github/workflows/claude.yaml`, `dependency-review.yaml`, and `cursor-review.yaml`
+  (`specs/cursor-review.adoc` describes the Cursor review)
   — the review path in use. `publish-pr.yaml` and `publish.yaml` stay the release path.
 * `.agents/skills/` — `update-dependency`, `update-dependencies`, and `prepare-release`.
 * `AGENTS.md` — day-to-day agent rules for this repository.
