@@ -9,10 +9,22 @@
 - Before you edit and before you commit, run `git status --short` and `git branch --show-current`.
   Do not change unrelated changes.
 - Branch rules:
-    - Cursor commits completed work on the `cursor` branch.
-    - Local Codex commits only on the existing `codex` branch.
-      Local Codex does not push.
+    - Do all work on a feature branch from `main`.
+      Give the branch a `<type>/<topic>` name, for example `docs/jest-configuration` or `fix/import-extension`.
+    - Do not use one long-lived branch for each agent.
+    - Each feature branch becomes one PR.
+      The maintainer squash-merges the PR into `main`.
+    - Backports use the same process on a branch from `vX.Y.x`.
     - Claude CI uses the branch and push rules in [Workflows](#workflows).
+- Worktrees:
+    - Agents work in a separate Git worktree, not in the shared checkout of the maintainer.
+      Do not switch the branch of the shared checkout.
+    - Put the worktree outside the repository directory, for example
+      `git worktree add -b docs/<topic> ../ts.build-worktrees/<topic> main`.
+      Prettier formats each file under the repository root and does not read `.git/info/exclude`.
+      Thus, a worktree inside the repository gets changes from `npm run lint`.
+    - Run `npm ci` in each new worktree.
+    - After the PR is merged, remove the worktree with `git worktree remove <dir>`.
 - Git ignores the `dist/` directory.
   Always build `dist/` again from its inputs.
 - Write deferred work in [ROADMAP.adoc](ROADMAP.adoc).
@@ -230,7 +242,7 @@ The Dependency Dashboard is the backlog.
       `package.json`, `package-lock.json`, `tsconfig/**`, `src/**`, `ROADMAP.adoc`, `AGENTS.md`, and `renovate.json`.
     - Keep README and changelog updates for the Publish commit.
 2.  Squash-merge on GitHub is the preferred method.
-    The maintainer can also make the update again on `cursor` and merge it.
+    The maintainer can also make the update again on a feature branch and squash-merge that PR.
     - To fix a Renovate branch, add follow-up commits.
     - Keep the original Renovate commit.
 3.  Write the squash title in the dependency commit style.
