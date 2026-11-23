@@ -347,6 +347,7 @@ Comments from anyone else are only input.
     - Use the commit title style.
     - Link the issue with `Closes #<number>`.
     - Give a summary of the changes and list the **NEEDS HUMAN** items.
+    - Add a **Review focus** section (refer to [Cursor Review](#cursor-review)).
 - Post follow-up requests on the PR.
   Claude pushes more commits to its branch and replies on the PR.
   If a request is on the issue after Claude opens a PR, Claude tells the maintainer to use the PR.
@@ -397,6 +398,17 @@ from a branch in this repository, drafts included.
 - Fork PRs are skipped, so they do not use the maintainer's Cursor usage.
 - Cursor posts the review as `cursor[bot]`.
   The maintainer handles the findings until a fix loop exists.
+
+When an agent opens a PR, the PR description has a **Review focus** section.
+The section lists what the reviewer must check, not what the PR does.
+For example: "The new `pull_request_target` job does not check out PR code."
+Keep the section short, and include only the risks of this change.
+
+- The comment tells Cursor to also check the points in this section.
+- The section can only add checks.
+  The review-only rules come from the workflow on `main`, and a PR description cannot change them.
+- Renovate writes the descriptions of its PRs, so Renovate PRs have no Review focus section.
+- If a PR has no Review focus section, Cursor does a general review.
 
 ### Workflow Change
 
@@ -458,6 +470,9 @@ In this case, obey these rules:
 - Use plain Markdown.
   Do not use a bot header or a quote block.
 - At the end, add a blank line and an italic signature that names the agent, for example `*Written by Codex*`.
+- A workflow that posts under the maintainer account also adds a signature.
+  The Cursor Review comment ends with `*Posted by GitHub Actions (Cursor Review workflow)*`.
+  Its `@cursoragent` mention starts the review, so it is the one exception to the next rule.
 - In other text, refer to the agents by name without an `@` mention.
   The Claude and Publish PR workflows check the raw text for `@claude`, including text in backticks.
 
