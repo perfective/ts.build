@@ -2,93 +2,120 @@
 name: prepare-release
 description: >-
     Prepare the `Publish vX.Y.Z` commit for @perfective/build
-    (version bump, CHANGELOG.adoc, README updates, ROADMAP.adoc)
-    from the commits since the last release.
-    Use only when the maintainer asks locally.
-    On GitHub, a release issue runs publish-pr.yaml instead,
-    including a later fix on the existing publish branch.
-    It never tags, releases, or publishes.
+    from the commits since the last release:
+    the version, CHANGELOG.adoc, the READMEs, and ROADMAP.adoc.
+    Use this skill only when the maintainer asks for a local release commit.
+    On GitHub, a release issue starts publish-pr.yaml instead,
+    also for a later fix on the Publish branch.
+    This skill does not tag, release, or publish.
 ---
 
 # Prepare a release
 
-Run this only on the maintainer's request, and only outside a GitHub release issue or its Publish PR.
-A GitHub release is an open issue titled `Release @perfective/build vX.Y.Z` with the `release` label.
-Adding the `claude` label runs `.github/workflows/publish-pr.yaml`,
-which also continues on an existing `publish-vX.Y.Z` branch
-(re-adding the label, or `@claude` on the Publish PR) with a fix-up commit on that PR.
-The general Claude workflow skips the release issue and the Publish PR, so do not run this skill on either.
-Tagging and `npm publish` stay with the maintainer: `publish.yaml` publishes to npm only
-after the signed tag is pushed.
-The maintainer creates the GitHub Release manually.
+Use this skill only when the maintainer asks for a local release commit.
+Do not use it on a GitHub release issue or on a Publish PR.
 
-The result of a local run is one `Publish vX.Y.Z` commit on a `publish-vX.Y.Z` branch from `main`.
-Do not use a `feature/` name: the workflows find a Publish PR from the `publish-vX.Y.Z` name
-(see "Branch rules" in `AGENTS.md`).
+On GitHub, the release process is different:
+
+- A release issue is an open issue with the title `Release @perfective/build vX.Y.Z`.
+- When the maintainer adds the `claude` label to that issue, `.github/workflows/publish-pr.yaml` runs.
+- To continue on an existing `publish-vX.Y.Z` branch, the maintainer adds the label again
+  or posts `@claude` on the Publish PR.
+  Then the workflow adds a fix commit to that PR.
+- The general Claude workflow skips the Publish PR,
+  and it skips an issue that has the `release` label or a `Release @perfective/build v` title.
+
+The maintainer does these steps, not the agent:
+
+- Sign and push the tag.
+  After the tag push, `publish.yaml` publishes the package to npm.
+- Make the GitHub Release.
+
+A local run makes one `Publish vX.Y.Z` commit on a `publish-vX.Y.Z` branch from `main`.
+Do not use a `feature/` name for this branch.
+The workflows find a Publish PR from the `publish-vX.Y.Z` name.
+For more information, refer to "Branch rules" in `AGENTS.md`.
 
 ## 1. Collect the changes
+
+Find the last tag and the commits after it:
 
 ```bash
 git describe --tags --abbrev=0 --match 'v*'
 git log --reverse --format='%h %s%n%b' <last-tag>..HEAD
 ```
 
-Group the commits:
+Put the commits into these groups:
 
-- dependency updates (`Patch` / `Update` / `Upgrade`);
-- task, preset, and export changes;
-- documentation that consumers need (the changelog only when it is relevant to them).
+- Dependency updates (`Patch`, `Update`, or `Upgrade`).
+- Changes to tasks, presets, and exports.
+- Documentation changes that consumers need.
 
-Leave out CI, workflow, Renovate, `AGENTS.md`, and `ROADMAP.adoc` changes.
+Do not include changes to CI, workflows, Renovate, `AGENTS.md`, or `ROADMAP.adoc`.
 
-## 2. Choose the version
+## 2. Select the version
 
-While on `v0`:
+While the package is at `v0`, use these rules:
 
-- **minor** (`v0.X+1.0`) when anything can break a consumer's build:
-  a removed or changed export, a stricter preset or `tsconfig`, a peer dependency major or a new peer,
-  or a dropped Node.js or TypeScript version;
-- **patch** (`v0.X.Y+1`) otherwise.
+- Use a minor version (`v0.X+1.0`) if a change can break the build of a consumer.
+  Examples:
+    - An export is removed or changed.
+    - A preset or the `tsconfig` is stricter.
+    - A peer dependency gets a new major version, or a new peer dependency is added.
+    - A Node.js version or a TypeScript version is no longer supported.
+- Use a patch version (`v0.X.Y+1`) for all other changes.
 
-When the maintainer already named the version, use that version.
-When unsure, choose minor and say why in the report.
-Moving to the next TypeScript line usually opens the next `@perfective/build` version.
+If the maintainer gave the version, use that version.
+If you are not sure, use a minor version and give the reason in the report.
+A change to a new TypeScript line usually starts the next `@perfective/build` version.
 
 ## 3. Update the version and the lockfile
 
-Skip this step when `package.json` is already at that version and `npm update` has already been run
-(that is what `publish-pr.yaml` does before Claude starts). Do not change those two files further then.
+Skip this step if both of these conditions are true:
 
-Otherwise:
+- `package.json` already has the new version.
+- `npm update` already ran.
+
+`publish-pr.yaml` does these two steps before Claude starts.
+In that case, do not change `package.json` or `package-lock.json` again.
+
+Otherwise, run these commands:
 
 ```bash
 npm version <version> --no-git-tag-version
 npm update
 ```
 
-Check that `peerDependencies` ranges still match the installed versions.
+Make sure that the `peerDependencies` ranges agree with the installed versions.
 
-## 4. Write the CHANGELOG
+## 4. Write the changelog
 
-Add a `== vX.Y.Z` section at the top of `CHANGELOG.adoc`, following the existing sections
-and "CHANGELOG phrasing" in `.agents/skills/update-dependency/references/decisions.md`:
+Add a `== vX.Y.Z` section at the top of `CHANGELOG.adoc`.
+Use the same format as the existing sections.
+Also obey "CHANGELOG phrasing" in `.agents/skills/update-dependency/references/decisions.md`:
 
-- past tense, bullets that mirror the commit verbs;
-- two blank lines between versions;
-- only consumer-relevant changes.
+- Write the bullets in the past tense.
+- Use the same verb as the commit.
+- Put two blank lines between versions.
+- Include only changes that affect consumers.
 
 ## 5. Update the READMEs
 
-Apply the README gaps listed in `ROADMAP.adoc` that the commits since the last tag address
-to both `README.adoc` and `README.md`, and keep the two in sync
-(including peer dependency ranges with `package.json`).
-Use semantic line breaks. Leave a README as it is when nothing applies.
+`ROADMAP.adoc` lists the README changes that are pending.
+For each of these changes that the new commits deliver, update both `README.adoc` and `README.md`.
+
+- Keep `README.adoc` and `README.md` in sync with each other.
+- Keep the peer dependency ranges in both READMEs in sync with `package.json`.
+- Use semantic line breaks.
+- If no change applies to a README, do not change it.
 
 ## 6. Update the roadmap
 
-Remove or check off the `ROADMAP.adoc` items this release delivered.
+Remove the `ROADMAP.adoc` items that this release delivers, or mark them as done.
 
 ## 7. Verify and commit
+
+Run these commands:
 
 ```bash
 npm run lint
@@ -96,15 +123,28 @@ npm run lint:build
 npm run dist
 ```
 
-Commit as `Publish vX.Y.Z` with only the changed files among `package.json`, `package-lock.json`,
-`CHANGELOG.adoc`, `README.adoc`, `README.md`, and `ROADMAP.adoc`.
+All commands must pass.
+
+Commit the changes with the title `Publish vX.Y.Z`.
+The commit can change only these files:
+
+- `package.json`
+- `package-lock.json`
+- `CHANGELOG.adoc`
+- `README.adoc`
+- `README.md`
+- `ROADMAP.adoc`
 
 ## 8. Report the next steps
 
-Stop after the commit. Do not tag, create a release, or publish to npm. Report:
+Stop after the commit.
+Do not make a tag, do not make a release, and do not publish to npm.
 
-1. Push the branch and open a pull request (or let `publish-pr.yaml` do that from the release issue).
-2. After CI passes, squash-merge the Publish PR.
-3. `git tag -s vX.Y.Z` and push the tag.
-4. `publish.yaml` publishes `@perfective/build` to npm only.
-5. The maintainer creates the GitHub Release for the tag manually.
+Report these next steps to the maintainer:
+
+1.  Push the branch and open a pull request.
+    Alternatively, let `publish-pr.yaml` do this from the release issue.
+2.  After CI passes, squash-merge the Publish PR.
+3.  Sign the tag with `git tag -s vX.Y.Z`, and push the tag.
+4.  `publish.yaml` publishes `@perfective/build` to npm.
+5.  Make the GitHub Release for the tag manually.
