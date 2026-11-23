@@ -16,8 +16,11 @@
           Start the topic with the type of change, for example `feature/docs-branch-workflow`
           or `feature/fix-import-extension`.
     - Branches that tools make keep their own names:
-      Renovate (`renovate/...`), the Publish PR workflow (`publish-vX.Y.Z`),
-      and Claude CI (`claude-issue-<number>-...`).
+      Renovate (`renovate/...`) and Claude CI (`claude-issue-<number>-...`).
+    - A Publish branch always has the name `publish-vX.Y.Z`, also for a local release.
+      The workflows find a Publish PR from this name.
+      With another name, the general Claude workflow does not skip the PR,
+      and the [Publish PR](.github/workflows/publish-pr.yaml) workflow does not accept `@claude` follow-ups on it.
     - Do not use one long-lived branch for each agent.
     - Each feature branch becomes one PR.
       The maintainer squash-merges the PR into `main`.
