@@ -314,6 +314,11 @@ To give a paste-ready message, use this format:
 
 All jobs run on `ubuntu-latest`.
 Outside the CI matrix, jobs that install dependencies use Node.js `26.x`.
+On GitHub Actions, Claude Code removes `CLAUDE_CODE_OAUTH_TOKEN` from the commands that Claude runs,
+for example `npm install`.
+`GH_TOKEN` and `GITHUB_TOKEN` stay in those commands, so an install script can read the GitHub App token.
+Do not set `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` in the Claude jobs:
+`0` turns the scrub off, and `1` turns on a stricter sandbox that these jobs are not set up for.
 
 [Continuous Integration](.github/workflows/ci.yaml) runs on PRs and on pushes to `main` or `vX.Y.x`.
 It runs `npm ci`, `npm run lint:build`, and `npm run dist` on Node.js `22.x`, `24.x`, and `26.x`.
