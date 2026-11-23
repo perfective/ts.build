@@ -7,7 +7,8 @@ alwaysApply: true
 
 When you change files in this repository, commit those changes before finishing the task.
 
-- Commit on the `cursor` branch. Never commit to `main`.
+- Commit on a feature branch from `main` in a separate worktree.
+  Follow "Branch rules" and "Worktrees" in `AGENTS.md`. Never commit to `main`.
 - Stage the changes from the task. Leave unrelated files and secrets unstaged.
 - Use a short imperative commit title with no trailing period, and usually no body.
 - Do not push, force-push, tag, or release unless the user asks.

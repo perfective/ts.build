@@ -45,9 +45,11 @@ Dependencies are updated one per commit, in this order:
 - Ignore prereleases unless the user asked for one.
 - For a Renovate PR: `gh pr view <number>`,
   then work on the PR branch on top of Renovate's commit (do not amend it).
-  Locally, prefer a separate worktree (`git worktree add <dir> <branch>` and `npm ci` there)
-  over `gh pr checkout`, so the maintainer's checkout is not switched under them,
+  Locally, use a separate worktree outside the repository (`git worktree add <dir> <branch>` and `npm ci` there)
+  instead of `gh pr checkout`, so the maintainer's checkout is not switched under them,
   and confirm the branch (`git branch --show-current`) before every commit.
+- Without a Renovate PR, make a feature branch from `main` in its own worktree
+  (see "Branch rules" and "Worktrees" in `AGENTS.md`).
 
 ## 3. Review every intervening release
 
@@ -108,7 +110,7 @@ Review `git diff` after it.
 One commit for the dependency, with the verb by the dependency's SemVer level
 (`Patch` / `Update` / `Upgrade`).
 See "Commit message" in `references/decisions.md`.
-If you need to fix the commit later on the agent branch, squash the fix into it instead of adding a new commit.
+If you need to fix the commit before you push the feature branch, squash the fix into it instead of adding a new commit.
 
 For a Renovate PR, add a follow-up commit on the PR branch instead,
 and suggest the squash-merge title in the Perfective style (for example `Update gulp-typescript to v6.0.0`).

@@ -9,10 +9,32 @@
 - Before you edit and before you commit, run `git status --short` and `git branch --show-current`.
   Do not change unrelated changes.
 - Branch rules:
-    - Cursor commits completed work on the `cursor` branch.
-    - Local Codex commits only on the existing `codex` branch.
-      Local Codex does not push.
+    - Do all work on a feature branch from `main`.
+    - Each feature branch name starts with `feature/`:
+        - For a GitHub issue, always use `feature/issue-<number>`, for example `feature/issue-12`.
+        - For other work, use `feature/<type>-<topic>`.
+          Start the topic with the type of change, for example `feature/docs-branch-workflow`
+          or `feature/fix-import-extension`.
+    - Branches that tools make keep their own names:
+      Renovate (`renovate/...`) and Claude CI (`claude-issue-<number>-...`).
+    - A Publish branch always has the name `publish-vX.Y.Z`, also for a local release.
+      The workflows find a Publish PR from this name.
+      With another name, the general Claude workflow does not skip the PR,
+      and the [Publish PR](.github/workflows/publish-pr.yaml) workflow does not accept `@claude` follow-ups on it.
+    - Do not use one long-lived branch for each agent.
+    - Each feature branch becomes one PR.
+      The maintainer squash-merges the PR into `main`.
+    - Backports use the same process on a branch from `vX.Y.x`.
     - Claude CI uses the branch and push rules in [Workflows](#workflows).
+- Worktrees:
+    - Agents work in a separate Git worktree, not in the shared checkout of the maintainer.
+      Do not switch the branch of the shared checkout.
+    - Put the worktree outside the repository directory, for example
+      `git worktree add -b feature/<name> ../ts.build-worktrees/<name> main`.
+      Prettier formats each file under the repository root and does not read `.git/info/exclude`.
+      Thus, a worktree inside the repository gets changes from `npm run lint`.
+    - Run `npm ci` in each new worktree.
+    - After the PR is merged, remove the worktree with `git worktree remove <dir>`.
 - Git ignores the `dist/` directory.
   Always build `dist/` again from its inputs.
 - Write deferred work in [ROADMAP.adoc](ROADMAP.adoc).
@@ -230,7 +252,7 @@ The Dependency Dashboard is the backlog.
       `package.json`, `package-lock.json`, `tsconfig/**`, `src/**`, `ROADMAP.adoc`, `AGENTS.md`, and `renovate.json`.
     - Keep README and changelog updates for the Publish commit.
 2.  Squash-merge on GitHub is the preferred method.
-    The maintainer can also make the update again on `cursor` and merge it.
+    The maintainer can also make the update again on a feature branch and squash-merge that PR.
     - To fix a Renovate branch, add follow-up commits.
     - Keep the original Renovate commit.
 3.  Write the squash title in the dependency commit style.
