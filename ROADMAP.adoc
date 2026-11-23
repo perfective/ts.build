@@ -7,9 +7,11 @@ Order matters: finish each stage before starting the next unless the maintainer 
 . Keep `AGENTS.md` accurate as development process changes.
 . Catch up dependency releases for this package, then cascade to consumers
 (see parent workspace `AGENTS.md` and package `AGENTS.md`).
+. Choose an automated PR reviewer (see <<automated-pr-review>>).
 . Quality control, then major changes (sections below).
 
 
+[[automated-pr-review]]
 == Automated PR review
 
 The Codex review loop is removed, so no workflow reviews Renovate PRs or Claude issue PRs after Claude.

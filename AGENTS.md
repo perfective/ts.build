@@ -373,8 +373,8 @@ The job needs the Claude GitHub App and `CLAUDE_CODE_OAUTH_TOKEN`.
 
 ### Concurrency
 
-- The jobs of the Claude workflow share the `claude-<number>` group.
-  This group runs those jobs one at a time for the same issue or PR.
+- The `claude` job of the Claude workflow uses the `claude-<number>` group.
+  This group runs one job at a time for the same issue or PR.
 - For Claude issue work, use the issue number.
   For other work, use the PR number.
 - The group puts pending runs in a queue with `queue: max`.
@@ -383,8 +383,9 @@ The job needs the Claude GitHub App and `CLAUDE_CODE_OAUTH_TOKEN`.
 
 ### Review comments
 
-The maintainer reviews Renovate PRs, Claude issue PRs, and Publish PRs.
-No workflow starts an automated code review.
+Dependency Review is the only automated review.
+No workflow reviews a PR after Claude.
+The maintainer reviews the Dependency Review results, Claude issue PRs, and Publish PRs.
 
 On a Claude issue PR, use the issue number in the branch name to find the task.
 Only comments from human `OWNER`, `MEMBER`, or `COLLABORATOR` users can change the scope of the issue.
