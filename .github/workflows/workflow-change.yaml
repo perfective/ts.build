@@ -1,0 +1,98 @@
+name: Workflow Change
+on:
+    # `pull_request_target` runs this file from `main`, so a PR cannot change what this job does.
+    # The job never checks out or runs PR code: it only reads the PR's file and commit lists through the API.
+    # Checking out the PR head in a `pull_request_target` job would run PR code with a write token.
+    pull_request_target:
+        types: [opened, reopened, synchronize]
+        # Matched against the PR's diff with its base: a later push whose diff no longer changes a workflow
+        # does not start this job, so the label is the signal that remains.
+        paths:
+            - '.github/workflows/**'
+
+permissions: {}
+
+jobs:
+    # A PR that changes a workflow runs its own version of that workflow, with the repository secrets
+    # (`CLAUDE_CODE_OAUTH_TOKEN`). This job does not block that run: it makes the change visible,
+    # so the maintainer reviews it and rotates the secrets when nobody expected the change.
+    # Keep this check out of the required checks: it always fails on a workflow change,
+    # and a path-filtered required check stays pending on every other PR.
+    flag:
+        name: Flag workflow changes
+        concurrency:
+            group: workflow-change-${{ github.event.pull_request.number }}
+            cancel-in-progress: true
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        permissions:
+            contents: read # Read the commits through the API (no checkout)
+            pull-requests: write # Label the PR
+            issues: write # Create the label when it is missing
+
+        steps:
+            # Only the PR number and the repository go into the script, through `env`.
+            # The PR title, body, and branch name are never used.
+            # Every API call runs outside `if`, so `set -e` fails the step on a 403, a rate limit, or a `jq` error.
+            - name: Label the PR and list the workflow changes
+              working-directory: ${{ runner.temp }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  GH_REPO: ${{ github.repository }}
+                  REPO: ${{ github.repository }}
+                  NUMBER: ${{ github.event.pull_request.number }}
+              run: |
+                  set -euo pipefail
+                  # A rename keeps the old path in `previous_filename`: a move out of the directory counts too.
+                  workflow='def workflow: (.filename // "" | startswith(".github/workflows/"))
+                      or (.previous_filename // "" | startswith(".github/workflows/"));'
+                  files="$(gh api --paginate "/repos/${REPO}/pulls/${NUMBER}/files?per_page=100" \
+                      --jq "${workflow}"' .[] | select(workflow)
+                          | "\(.status) \(.filename)"
+                              + (if .previous_filename then " (from \(.previous_filename))" else "" end)')"
+                  if [ -z "${files}" ]; then
+                      echo "PR #${NUMBER} changes no workflow file."
+                      exit 0
+                  fi
+                  total="$(gh api "/repos/${REPO}/pulls/${NUMBER}" --jq '.commits')"
+                  commits="$(gh api --paginate "/repos/${REPO}/pulls/${NUMBER}/commits?per_page=100" --jq '.[].sha')"
+                  listed="$(printf '%s\n' "${commits}" | grep -c .)"
+                  touching=
+                  for sha in ${commits}; do
+                      # One request per commit; `--slurp` joins the file pages (300 files per page, up to 3000).
+                      line="$(gh api --paginate --slurp "/repos/${REPO}/commits/${sha}?per_page=100" \
+                          | jq -r "${workflow}"'
+                              if [.[].files[]] | any(workflow)
+                              then "\(.[0].sha) (author \(.[0].author.login // .[0].commit.author.name),"
+                                  + " committer \(.[0].committer.login // .[0].commit.committer.name))"
+                              else empty end')"
+                      if [ -n "${line}" ]; then
+                          touching="${touching}${line}"$'\n'
+                      fi
+                  done
+                  gh label create workflow-change --color B60205 \
+                      --description "The PR changes a GitHub Actions workflow" 2> /dev/null || true
+                  gh pr edit "${NUMBER}" --add-label workflow-change
+                  {
+                      echo "## Workflow files changed"
+                      echo
+                      echo '```text'
+                      echo "${files}"
+                      echo '```'
+                      echo
+                      echo "## Commits that change them"
+                      echo
+                      echo '```text'
+                      printf '%s' "${touching}"
+                      echo '```'
+                      if [ "${total}" -gt "${listed}" ]; then
+                          echo
+                          echo "The PR has ${total} commits, and the API lists only the first ${listed}."
+                          echo "Check the other commits by hand."
+                      fi
+                      echo
+                      echo "This PR's own workflow runs had access to the repository secrets."
+                      echo "Review the change. If nobody expected it, rotate the secrets."
+                  } >> "${GITHUB_STEP_SUMMARY}"
+                  echo "::error::PR #${NUMBER} changes workflow files. Review them before merging."
+                  exit 1
