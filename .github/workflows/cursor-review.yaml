@@ -18,7 +18,11 @@ jobs:
     request:
         name: Request the Cursor review
         # PRs from branches in this repository only: a fork PR must not spend the maintainer's Cursor usage.
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        # Skip a head that Cursor pushed. If a review pushed a commit, a review of that commit
+        # could push again, and the requests would not stop. The next push by anyone else gets a review.
+        if: >-
+            github.event.pull_request.head.repo.full_name == github.repository
+            && github.event.sender.login != 'cursor[bot]'
         # One request per PR at a time. A newer head cancels the waiting request for an older one.
         concurrency:
             group: cursor-review-${{ github.event.pull_request.number }}
