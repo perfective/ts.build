@@ -315,6 +315,10 @@ To give a paste-ready message, use this format:
 
 All jobs run on `ubuntu-latest`.
 Outside the CI matrix, jobs that install dependencies use Node.js `26.x`.
+Each action is pinned to a commit SHA, with its version in a comment,
+for example `actions/checkout@<sha> # v7.0.1`.
+Do not use a tag such as `@v7`: a tag can move to other code.
+Renovate updates the pins each week (`helpers:pinGitHubActionDigests`).
 On GitHub Actions, Claude Code removes `CLAUDE_CODE_OAUTH_TOKEN` from the commands that Claude runs,
 for example `npm install`.
 `GH_TOKEN` and `GITHUB_TOKEN` stay in those commands, so an install script can read the GitHub App token.

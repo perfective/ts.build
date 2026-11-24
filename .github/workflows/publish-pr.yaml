@@ -167,13 +167,13 @@ jobs:
             # When resuming, the existing Publish branch, so Claude reads its files
             # and the commit tool adds a commit on top of that branch.
             - name: Checkout repository
-              uses: actions/checkout@v7
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: ${{ needs.prepare.outputs.resume == 'true' && needs.prepare.outputs.branch || '' }}
                   fetch-depth: 0
 
             - name: Setup Node.js
-              uses: actions/setup-node@v7
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version: '26.13.1'
 
@@ -234,7 +234,7 @@ jobs:
 
             - name: Run Claude Code
               id: claude
-              uses: anthropics/claude-code-action@v1
+              uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
               with:
                   claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
                   # `main` requires signed commits: commit through the GitHub API, so GitHub signs the commit.
