@@ -7,7 +7,7 @@ Order matters: finish each stage before starting the next unless the maintainer 
 . Keep `AGENTS.md` accurate as development process changes.
 . Catch up dependency releases for this package, then cascade to consumers
 (see parent workspace `AGENTS.md` and package `AGENTS.md`).
-. Add a fix loop for the automated PR review (see <<automated-pr-review>>).
+. Reduce repeated findings in the automated PR review (see <<automated-pr-review>>).
 . Quality control, then major changes (sections below).
 
 
@@ -18,8 +18,10 @@ Cursor Review requests a Cursor review of each PR head with an `@cursoragent rev
 Cursor Bugbot, Cursor Automations, and the Cloud Agents API bill outside the included usage,
 and Cursor ignores the comment from `github-actions[bot]`,
 so the comment is posted with the maintainer's fine-grained token.
+Cursor Fix has Claude fix the findings on Renovate PRs and Claude issue PRs, in at most two rounds.
 
-* Add a fix loop for the findings (Claude fixes in rounds 1 and 2) and resolve the fixed threads.
+* Tell Cursor not to repeat a finding from a resolved thread, or a finding that the maintainer declined,
+unless the new head changes that code.
 
 
 == Quality control
