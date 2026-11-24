@@ -195,13 +195,13 @@ The token is a secret of the `cursor-review` environment, and the environment al
 
 === The job
 
-* `pull_request_target` runs the workflow file from `main`, with a write token.
-  Thus, the job never checks out or runs PR code.
-  It only reads comments and posts one comment through the API.
+* `pull_request_target` runs the workflow file from `main`, and it can give the job a `GITHUB_TOKEN` with write access.
+  Thus, the job limits that token, and it never checks out or runs PR code:
+** The workflow sets `permissions: {}`.
+** The job gives `GITHUB_TOKEN` only `issues: read` and `pull-requests: read`, to read the comments.
+** The job posts its one comment with `CURSOR_REVIEW_TOKEN`, not with `GITHUB_TOKEN`.
 * Only the PR number, the head SHA, and the repository go into the script, through `env`.
   The PR title, body, and branch name are never used.
-* `permissions: {}` at the workflow level.
-  The job has only `issues: read` and `pull-requests: read` for `GITHUB_TOKEN`.
 * Fork PRs are skipped, so they cannot use the maintainer's Cursor usage.
 
 === Other secrets in PR workflows
@@ -302,8 +302,10 @@ Copy these files from `ts.build`, and change the repository-specific text:
   if the repository has other skills.
 . `.github/workflows/workflow-change.yaml`.
 . `.cursor/rules/pr-review.mdc`, with `alwaysApply: false`.
-. The "Cursor Review", "Workflow Change", "Concurrency", and "Reviewer signatures" sections of `AGENTS.md`,
-  and the Review focus rule for PRs that agents open.
+. These sections of `AGENTS.md`, with the repository-specific text changed:
+** "Code Review Rules": the comment tells Cursor to review against this section.
+** "Cursor Review", with the Review focus rule for PRs that agents open.
+** "Workflow Change", "Concurrency", and "Reviewer signatures".
 
 Merge these files in one PR.
 The workflows run from `main`, so they do not run on that PR.
