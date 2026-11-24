@@ -84,7 +84,7 @@ jobs:
                   [ "${reviewed}" = "${sha}" ] \
                       || none "Cursor reviewed ${reviewed:-no head}, but the head is ${sha}. A new review follows."
                   if jq -e --arg sha "${sha}" \
-                      'any(.[]; .body | contains("<!-- cursor-fix-") and contains($sha))' \
+                      'any(.[]; .body | test("<!-- cursor-fix-(round: [0-9]+|report:) " + $sha + " -->"))' \
                       <<< "${comments}" > /dev/null; then
                       none "A fix round or a report for ${sha} already ran."
                   fi
