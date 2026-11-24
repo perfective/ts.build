@@ -386,6 +386,7 @@ The job needs the Claude GitHub App and `CLAUDE_CODE_OAUTH_TOKEN`.
 
 [Cursor Review](.github/workflows/cursor-review.yaml) requests a Cursor review of each new head of a PR
 from a branch in this repository, drafts included.
+For the design, the security model, and the setup steps, refer to [the Cursor review spec](specs/cursor-review.adoc).
 
 - The job posts one `@cursoragent review` comment for each head SHA.
   The comment has the review-only instructions and a hidden `cursor-review` marker with the SHA.
