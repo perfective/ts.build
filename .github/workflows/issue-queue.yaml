@@ -1,0 +1,125 @@
+name: Issue Queue
+on:
+    # The `issues` event runs this file from `main`. The job never checks out or runs repository code:
+    # it only reads issues and adds a label through the API.
+    issues:
+        types: [labeled, closed]
+
+permissions: {}
+
+jobs:
+    # A parent issue with the `claude-queue` label is a queue: its sub-issues run one at a time, in their order.
+    # The maintainer adds `claude-queue` to start the queue, and removes it to pause the queue.
+    # When a sub-issue closes (usually when its PR is merged), the job adds the `claude` label
+    # to the next open sub-issue. That label starts the Claude workflow, which opens the next PR from `main`.
+    # Labels that `GITHUB_TOKEN` adds do not start workflows. So the job adds the label
+    # with the maintainer's fine-grained token, and the maintainer is the sender of the `labeled` event.
+    next:
+        name: Start the next sub-issue
+        if: >-
+            github.event.action == 'closed'
+            || github.event.action == 'labeled' && github.event.label.name == 'claude-queue'
+        # One job at a time for all queues: a job that waits sees the label that the job before it added.
+        concurrency:
+            group: issue-queue
+            cancel-in-progress: false
+            queue: max
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        # The token is an environment secret. The environment allows only `main`.
+        environment: issue-queue
+        permissions:
+            issues: write # Read the issues and comment on the parent issue
+
+        steps:
+            # Only numbers, the repository, and the sender login go into the script, through `env`.
+            # Issue titles and bodies are never used.
+            - name: Label the next open sub-issue
+              working-directory: ${{ runner.temp }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PAT: ${{ secrets.ISSUE_QUEUE_TOKEN }}
+                  REPO: ${{ github.repository }}
+                  ACTION: ${{ github.event.action }}
+                  NUMBER: ${{ github.event.issue.number }}
+                  SENDER: ${{ github.event.sender.login }}
+              run: |
+                  set -euo pipefail
+                  stop() {
+                      echo "$1"
+                      exit 0
+                  }
+                  if [ -z "${PAT}" ]; then
+                      echo "::error::The issue-queue environment has no ISSUE_QUEUE_TOKEN secret."
+                      exit 1
+                  fi
+
+                  # Only a user with write access can start or move a queue.
+                  # An issue author can close their own issue, and that must not start Claude.
+                  permission="$(gh api "/repos/${REPO}/collaborators/${SENDER}/permission" \
+                      --jq '.permission' 2> /dev/null || true)"
+                  case "${permission}" in
+                      admin | maintain | write) ;;
+                      *) stop "${SENDER} has no write access, so the queue does not move." ;;
+                  esac
+
+                  query='
+                      query($owner: String!, $name: String!, $number: Int!) {
+                          repository(owner: $owner, name: $name) {
+                              issue(number: $number) {
+                                  number
+                                  state
+                                  labels(first: 100) { nodes { name } }
+                                  parent { number }
+                                  subIssues(first: 100) {
+                                      nodes { number state labels(first: 100) { nodes { name } } }
+                                  }
+                              }
+                          }
+                      }'
+                  issue() {
+                      gh api graphql -f query="${query}" -f owner="${REPO%%/*}" -f name="${REPO#*/}" -F number="$1" \
+                          --jq '.data.repository.issue'
+                  }
+
+                  if [ "${ACTION}" = "labeled" ]; then
+                      parent="${NUMBER}"
+                  else
+                      parent="$(issue "${NUMBER}" | jq -r '.parent.number // ""')"
+                      [ -n "${parent}" ] || stop "Issue #${NUMBER} has no parent issue."
+                  fi
+                  queue="$(issue "${parent}")"
+                  jq -e '.state == "OPEN" and any(.labels.nodes[]; .name == "claude-queue")' <<< "${queue}" \
+                      > /dev/null || stop "Issue #${parent} is not an open issue with the claude-queue label."
+
+                  # One sub-issue at a time: stop while an open sub-issue already has the `claude` label.
+                  running="$(jq -r '[.subIssues.nodes[] | select(.state == "OPEN"
+                      and any(.labels.nodes[]; .name == "claude")) | .number] | first // ""' <<< "${queue}")"
+                  [ -z "${running}" ] || stop "Sub-issue #${running} of #${parent} is still open with the claude label."
+
+                  total="$(jq '.subIssues.nodes | length' <<< "${queue}")"
+                  next="$(jq -r '[.subIssues.nodes[] | select(.state == "OPEN") | .number] | first // ""' \
+                      <<< "${queue}")"
+                  if [ -z "${next}" ]; then
+                      marker="<!-- issue-queue: done -->"
+                      if gh api --paginate "/repos/${REPO}/issues/${parent}/comments?per_page=100" \
+                          | jq -se --arg marker "${marker}" 'any(.[][]; .body | contains($marker))' > /dev/null; then
+                          stop "The queue of #${parent} is already done."
+                      fi
+                      body="$(printf '%s\n\n%s\n\n%s' \
+                          "All ${total} sub-issues are closed. The tasks that remain on this issue are for the maintainer." \
+                          "*Posted by GitHub Actions (Issue Queue workflow)*" \
+                          "${marker}")"
+                      gh api -X POST "/repos/${REPO}/issues/${parent}/comments" -f body="${body}" > /dev/null
+                      stop "The queue of #${parent} is done."
+                  fi
+
+                  position="$(jq --argjson next "${next}" \
+                      '[.subIssues.nodes[].number] | index($next) + 1' <<< "${queue}")"
+                  GH_TOKEN="${PAT}" gh api -X POST "/repos/${REPO}/issues/${next}/labels" \
+                      -f 'labels[]=claude' > /dev/null
+                  body="$(printf '%s\n\n%s' \
+                      "Started #${next} (${position} of ${total})." \
+                      "*Posted by GitHub Actions (Issue Queue workflow)*")"
+                  gh api -X POST "/repos/${REPO}/issues/${parent}/comments" -f body="${body}" > /dev/null
+                  echo "Added the claude label to #${next} (${position} of ${total} in #${parent})."

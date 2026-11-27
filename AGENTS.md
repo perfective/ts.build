@@ -457,6 +457,42 @@ When an agent thinks that a finding is incorrect or out of scope, it does these 
 The maintainer decides.
 The maintainer's reply on the thread is final, and then the thread is resolved.
 
+### Issue Queue
+
+[Issue Queue](.github/workflows/issue-queue.yaml) does the sub-issues of a parent issue one at a time, in their order:
+pick the next sub-issue, let Claude open its PR, land the PR, and pick the next sub-issue.
+
+- To start a queue, the maintainer adds the `claude-queue` label to the parent issue.
+  To pause it, the maintainer removes the label.
+- When the parent gets the label, or when one of its sub-issues closes,
+  the job adds the `claude` label to the first open sub-issue.
+  That label starts the [Claude workflow](#claude-issue-work), which opens a PR from the current `main`.
+  The PR closes the sub-issue with `Closes #<number>`, so the merge starts the next sub-issue.
+- The job does nothing while an open sub-issue already has the `claude` label.
+  To run a sub-issue again, remove its `claude` label and add it again.
+- A sub-issue closed as not planned also moves the queue.
+- When all sub-issues are closed, the job posts a comment on the parent.
+- Only a sender with write access moves the queue.
+- Labels that `GITHUB_TOKEN` adds do not start workflows.
+  Thus, the job adds the `claude` label with the maintainer's fine-grained token, `ISSUE_QUEUE_TOKEN`.
+  The token has access to this repository only, with Issues: write.
+  Keep it only as a secret of the `issue-queue` environment, which allows only `main`.
+- The job uses the `issues` event, so it runs from `main`.
+  It never checks out or runs repository code, and it does not read issue titles or bodies.
+
+#### Planning an issue for the queue
+
+When an agent writes an issue with work for more than one PR, it does these steps:
+
+1.  It writes one sub-issue for each PR, in the order in which the PRs land.
+    A sub-issue can depend only on the sub-issues before it.
+    Each PR starts from a `main` that has all the earlier PRs.
+2.  It puts the full scope of the PR in the sub-issue body, because the sub-issue is the request for Claude.
+    The body names the earlier sub-issues that it depends on, for the reviewer.
+3.  It keeps the tasks that only the maintainer can do (for example, repository settings) on the parent issue.
+4.  It does not write `@claude` in the parent body or in a sub-issue body.
+    The Claude workflow starts on any label event of an issue with `@claude` in its body.
+
 ### Workflow Change
 
 [Workflow Change](.github/workflows/workflow-change.yaml) runs on PRs that change `.github/workflows/**`.
@@ -490,6 +526,8 @@ Thus, the maintainer must examine each workflow change.
 - The fix job of Cursor Fix uses the `claude-<number>` group, so it does not write to a branch
   at the same time as the Claude workflow.
   Its route job uses `cursor-fix-route-<number>`.
+- Issue Queue uses one `issue-queue` group for all queues, with `queue: max`.
+  A job that waits sees the labels that the job before it added.
 
 ### Review comments
 
