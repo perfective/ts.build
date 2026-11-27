@@ -70,23 +70,32 @@ jobs:
                                   number
                                   state
                                   labels(first: 100) { nodes { name } }
-                                  parent { number }
+                                  parent { number repository { nameWithOwner } }
                                   subIssues(first: 100) {
-                                      nodes { number state labels(first: 100) { nodes { name } } }
+                                      nodes {
+                                          number
+                                          state
+                                          repository { nameWithOwner }
+                                          labels(first: 100) { nodes { name } }
+                                      }
                                   }
                               }
                           }
                       }'
+                  # A parent or a sub-issue can be in another repository of the same owner,
+                  # and its number is not a number in this repository: keep only the sub-issues of this repository.
                   issue() {
                       gh api graphql -f query="${query}" -f owner="${REPO%%/*}" -f name="${REPO#*/}" -F number="$1" \
-                          --jq '.data.repository.issue'
+                          | jq --arg repo "${REPO}" '.data.repository.issue
+                              | .subIssues.nodes |= map(select(.repository.nameWithOwner == $repo))'
                   }
 
                   if [ "${ACTION}" = "labeled" ]; then
                       parent="${NUMBER}"
                   else
-                      parent="$(issue "${NUMBER}" | jq -r '.parent.number // ""')"
-                      [ -n "${parent}" ] || stop "Issue #${NUMBER} has no parent issue."
+                      parent="$(issue "${NUMBER}" | jq -r --arg repo "${REPO}" \
+                          '.parent | select(.repository.nameWithOwner == $repo) | .number')"
+                      [ -n "${parent}" ] || stop "Issue #${NUMBER} has no parent issue in ${REPO}."
                   fi
                   queue="$(issue "${parent}")"
                   jq -e '.state == "OPEN" and any(.labels.nodes[]; .name == "claude-queue")' <<< "${queue}" \
