@@ -464,21 +464,33 @@ pick the next sub-issue, let Claude open its PR, land the PR, and pick the next 
 
 - To start a queue, the maintainer adds the `claude-queue` label to the parent issue.
   To pause it, the maintainer removes the label.
-- When the parent gets the label, or when one of its sub-issues closes,
-  the job adds the `claude` label to the first open sub-issue.
+- The start records the ordered sub-issues as the approved queue, in a comment from `github-actions[bot]`.
+  Later closes use only that list.
+  If the sub-issues change, the queue stops,
+  because a user with triage access can add sub-issues, and the maintainer's token starts the work.
+  To approve the new list, remove the `claude-queue` label and add it again.
+- When the queue starts, or when one of its sub-issues closes,
+  the job adds the `claude` label to the first open sub-issue of the approved list.
   That label starts the [Claude workflow](#claude-issue-work), which opens a PR from the current `main`.
   The PR closes the sub-issue with `Closes #<number>`, so the merge starts the next sub-issue.
 - The job does nothing while an open sub-issue already has the `claude` label.
   To run a sub-issue again, remove its `claude` label and add it again.
 - A sub-issue closed as not planned also moves the queue.
-- When all sub-issues are closed, the job posts a comment on the parent.
+- The queue does not start while a sub-issue is in another repository.
+  Issue numbers are local to a repository.
+- The queue stops at a release issue (the `release` label, or a `Release @perfective/build v` title).
+  The Claude workflow skips it, and Publish PR takes the `claude` label as the approval of a release.
+- The job posts each step on the parent: the approved list, each start, each stop, and the end of the queue.
+  It trusts only the markers in comments from `github-actions[bot]`.
 - Only a sender with write access moves the queue.
+  When the job cannot read the permission of the sender, it fails.
 - Labels that `GITHUB_TOKEN` adds do not start workflows.
   Thus, the job adds the `claude` label with the maintainer's fine-grained token, `ISSUE_QUEUE_TOKEN`.
   The token has access to this repository only, with Issues: write.
   Keep it only as a secret of the `issue-queue` environment, which allows only `main`.
 - The job uses the `issues` event, so it runs from `main`.
-  It never checks out or runs repository code, and it does not read issue titles or bodies.
+  It never checks out or runs repository code.
+  It reads issue titles only inside `jq`, to find release issues, and it never reads issue bodies.
 
 #### Planning an issue for the queue
 

@@ -10,6 +10,9 @@ permissions: {}
 jobs:
     # A parent issue with the `claude-queue` label is a queue: its sub-issues run one at a time, in their order.
     # The maintainer adds `claude-queue` to start the queue, and removes it to pause the queue.
+    # The start records the ordered sub-issues as the approved queue in a comment from `github-actions[bot]`.
+    # Later closes use only that list, and stop when the sub-issues change:
+    # a user with triage access can add sub-issues, and must not choose the work that the maintainer's token starts.
     # When a sub-issue closes (usually when its PR is merged), the job adds the `claude` label
     # to the next open sub-issue. That label starts the Claude workflow, which opens the next PR from `main`.
     # Labels that `GITHUB_TOKEN` adds do not start workflows. So the job adds the label
@@ -33,7 +36,7 @@ jobs:
 
         steps:
             # Only numbers, the repository, and the sender login go into the script, through `env`.
-            # Issue titles and bodies are never used.
+            # Issue titles are read only inside `jq`, to find release issues. Issue bodies are never used.
             - name: Label the next open sub-issue
               working-directory: ${{ runner.temp }}
               env:
@@ -56,8 +59,17 @@ jobs:
 
                   # Only a user with write access can start or move a queue.
                   # An issue author can close their own issue, and that must not start Claude.
-                  permission="$(gh api "/repos/${REPO}/collaborators/${SENDER}/permission" \
-                      --jq '.permission' 2> /dev/null || true)"
+                  # A 404 means that the sender is not a user of this repository. Any other error fails the job,
+                  # so a queue does not stall behind a green run.
+                  if ! permission="$(gh api "/repos/${REPO}/collaborators/${SENDER}/permission" \
+                      --jq '.permission' 2> error.txt)"; then
+                      grep -q 'HTTP 404' error.txt || {
+                          cat error.txt
+                          echo "::error::Could not read the permission of ${SENDER}."
+                          exit 1
+                      }
+                      permission=none
+                  fi
                   case "${permission}" in
                       admin | maintain | write) ;;
                       *) stop "${SENDER} has no write access, so the queue does not move." ;;
@@ -75,6 +87,7 @@ jobs:
                                       nodes {
                                           number
                                           state
+                                          title
                                           repository { nameWithOwner }
                                           labels(first: 100) { nodes { name } }
                                       }
@@ -82,14 +95,13 @@ jobs:
                               }
                           }
                       }'
-                  # A parent or a sub-issue can be in another repository of the same owner,
-                  # and its number is not a number in this repository: keep only the sub-issues of this repository.
                   issue() {
                       gh api graphql -f query="${query}" -f owner="${REPO%%/*}" -f name="${REPO#*/}" -F number="$1" \
-                          | jq --arg repo "${REPO}" '.data.repository.issue
-                              | .subIssues.nodes |= map(select(.repository.nameWithOwner == $repo))'
+                          --jq '.data.repository.issue'
                   }
 
+                  # A parent or a sub-issue can be in another repository of the same owner,
+                  # and its number is not a number in this repository.
                   if [ "${ACTION}" = "labeled" ]; then
                       parent="${NUMBER}"
                   else
@@ -101,34 +113,86 @@ jobs:
                   jq -e '.state == "OPEN" and any(.labels.nodes[]; .name == "claude-queue")' <<< "${queue}" \
                       > /dev/null || stop "Issue #${parent} is not an open issue with the claude-queue label."
 
-                  # One sub-issue at a time: stop while an open sub-issue already has the `claude` label.
-                  running="$(jq -r '[.subIssues.nodes[] | select(.state == "OPEN"
-                      and any(.labels.nodes[]; .name == "claude")) | .number] | first // ""' <<< "${queue}")"
-                  [ -z "${running}" ] || stop "Sub-issue #${running} of #${parent} is still open with the claude label."
+                  # Read the comments first: a failed read fails the job, instead of a second notice.
+                  # Only the comments of this workflow (`github-actions[bot]`) count. Anyone can quote a marker.
+                  comments="$(gh api --paginate "/repos/${REPO}/issues/${parent}/comments?per_page=100" \
+                      | jq -s '[add // [] | .[] | select(.user.login == "github-actions[bot]")]')"
+                  posted() {
+                      jq -e --arg marker "$1" 'any(.[]; .body | contains($marker))' <<< "${comments}" > /dev/null
+                  }
+                  comment() {
+                      body="$(printf '%s\n\n%s\n\n%s' "$1" "*Posted by GitHub Actions (Issue Queue workflow)*" "$2")"
+                      gh api -X POST "/repos/${REPO}/issues/${parent}/comments" -f body="${body}" --jq '.id'
+                  }
+                  # Post a notice once: skip it when a comment of this workflow already has the marker.
+                  notice() {
+                      posted "$2" || comment "$1" "$2" > /dev/null
+                  }
 
-                  total="$(jq '.subIssues.nodes | length' <<< "${queue}")"
-                  next="$(jq -r '[.subIssues.nodes[] | select(.state == "OPEN") | .number] | first // ""' \
-                      <<< "${queue}")"
-                  if [ -z "${next}" ]; then
-                      marker="<!-- issue-queue: done -->"
-                      if gh api --paginate "/repos/${REPO}/issues/${parent}/comments?per_page=100" \
-                          | jq -se --arg marker "${marker}" 'any(.[][]; .body | contains($marker))' > /dev/null; then
-                          stop "The queue of #${parent} is already done."
+                  current="$(jq -r '[.subIssues.nodes[].number] | join(" ")' <<< "${queue}")"
+                  if [ "${ACTION}" = "labeled" ]; then
+                      jq -e --arg repo "${REPO}" 'all(.subIssues.nodes[]; .repository.nameWithOwner == $repo)' \
+                          <<< "${queue}" > /dev/null || {
+                          notice "Some sub-issues are in another repository, so the queue does not start." \
+                              "<!-- issue-queue-foreign: ${current} -->"
+                          stop "Issue #${parent} has sub-issues in another repository."
+                      }
+                      [ -n "${current}" ] || stop "Issue #${parent} has no sub-issues."
+                      # The maintainer added the label: record the sub-issues as the approved queue.
+                      list="$(sed 's/\([0-9][0-9]*\)/#\1/g; s/ /, /g' <<< "${current}")"
+                      approval="$(comment "${SENDER} started the queue: ${list}." \
+                          "<!-- issue-queue-approved: ${current} -->")"
+                      approved="${current}"
+                  else
+                      approval="$(jq -r '[.[] | select(.body | test("<!-- issue-queue-approved: [0-9 ]+ -->"))]
+                          | last | .id // ""' <<< "${comments}")"
+                      [ -n "${approval}" ] || stop "Issue #${parent} has no approved queue."
+                      approved="$(jq -r --argjson id "${approval}" '.[] | select(.id == $id) | .body
+                          | capture("<!-- issue-queue-approved: (?<list>[0-9 ]+) -->").list' <<< "${comments}")"
+                      if [ "${approved}" != "${current}" ]; then
+                          notice "The sub-issues changed after the queue started, so the queue stops.
+                  To approve the new list, remove the claude-queue label and add it again." \
+                              "<!-- issue-queue-changed: ${approval} -->"
+                          stop "The sub-issues of #${parent} changed after the approval."
                       fi
-                      body="$(printf '%s\n\n%s\n\n%s' \
-                          "All ${total} sub-issues are closed. The tasks that remain on this issue are for the maintainer." \
-                          "*Posted by GitHub Actions (Issue Queue workflow)*" \
-                          "${marker}")"
-                      gh api -X POST "/repos/${REPO}/issues/${parent}/comments" -f body="${body}" > /dev/null
-                      stop "The queue of #${parent} is done."
                   fi
 
-                  position="$(jq --argjson next "${next}" \
-                      '[.subIssues.nodes[].number] | index($next) + 1' <<< "${queue}")"
-                  GH_TOKEN="${PAT}" gh api -X POST "/repos/${REPO}/issues/${next}/labels" \
-                      -f 'labels[]=claude' > /dev/null
-                  body="$(printf '%s\n\n%s' \
-                      "Started #${next} (${position} of ${total})." \
-                      "*Posted by GitHub Actions (Issue Queue workflow)*")"
-                  gh api -X POST "/repos/${REPO}/issues/${parent}/comments" -f body="${body}" > /dev/null
-                  echo "Added the claude label to #${next} (${position} of ${total} in #${parent})."
+                  read -r -a order <<< "${approved}"
+                  total="${#order[@]}"
+                  state() {
+                      jq -r --argjson n "$1" '.subIssues.nodes[] | select(.number == $n)
+                          | if .state != "OPEN" then "closed"
+                            elif any(.labels.nodes[]; .name == "claude") then "running"
+                            else "open" end' <<< "${queue}"
+                  }
+                  position=0
+                  for n in "${order[@]}"; do
+                      position=$((position + 1))
+                      case "$(state "${n}")" in
+                          closed) continue ;;
+                          running)
+                              # One sub-issue at a time. If the run before this one added the label
+                              # but did not post the start notice, post it now.
+                              notice "Started #${n} (${position} of ${total})." "<!-- issue-queue-started: ${n} -->"
+                              stop "Sub-issue #${n} of #${parent} is still open with the claude label."
+                              ;;
+                      esac
+                      # The Claude workflow skips release issues, and Publish PR takes a `Release @perfective/build v`
+                      # title with the `claude` label as the maintainer's approval of a release.
+                      if jq -e --argjson n "${n}" '.subIssues.nodes[] | select(.number == $n)
+                          | any(.labels.nodes[]; .name == "release")
+                            or (.title | startswith("Release @perfective/build v"))' <<< "${queue}" > /dev/null; then
+                          notice "#${n} is a release issue, so the queue does not start it.
+                  Close it or remove it from the sub-issues, and then add the claude-queue label again." \
+                              "<!-- issue-queue-release: ${n} -->"
+                          stop "Sub-issue #${n} of #${parent} is a release issue."
+                      fi
+                      GH_TOKEN="${PAT}" gh api -X POST "/repos/${REPO}/issues/${n}/labels" \
+                          -f 'labels[]=claude' > /dev/null
+                      comment "Started #${n} (${position} of ${total})." "<!-- issue-queue-started: ${n} -->" > /dev/null
+                      stop "Added the claude label to #${n} (${position} of ${total} in #${parent})."
+                  done
+
+                  notice "All ${total} sub-issues are closed. The tasks that remain on this issue are for the maintainer." \
+                      "<!-- issue-queue-done: ${approval} -->"
+                  echo "The queue of #${parent} is done."
