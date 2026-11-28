@@ -191,7 +191,8 @@ jobs:
             # `--before` keeps the release age of Renovate (`security:minimumReleaseAgeNpm`, 3 days):
             # `npm update` does not resolve a version that was published in the last 3 days.
             # Renovate merges security updates without that wait, so `--before` can lower a locked version.
-            # Thus, the step fails when a version in the lockfile goes down.
+            # Thus, the step fails when a version at a path goes down,
+            # or when a dependency of a package resolves to a lower version (for example, after a dedupe).
             - name: Bump the version and update the lockfile
               id: bump
               run: |
@@ -225,26 +226,40 @@ jobs:
                               }
                               return a.pre.length - b.pre.length;
                           };
-                          const name = (path) => path.split('node_modules/').pop();
-                          const lowest = new Map();
-                          for (const [path, entry] of Object.entries(before)) {
-                              const version = parse(entry.version);
-                              if (path === '' || !version) continue;
-                              const current = lowest.get(name(path));
-                              if (!current || compare(version, current.version) < 0) lowest.set(name(path), { version, text: entry.version });
-                          }
-                          // A version is lower than the one at the same path, or lower than each version of that package.
-                          const downgrades = [];
+                          // The path that Node.js loads `name` from for the package at `path`: the nearest `node_modules` up the tree.
+                          const resolve = (packages, path, name) => {
+                              for (let from = path; ; ) {
+                                  const candidate = `${from === '' ? '' : `${from}/`}node_modules/${name}`;
+                                  if (packages[candidate]) return candidate;
+                                  if (from === '') return undefined;
+                                  const parent = from.lastIndexOf('/node_modules/');
+                                  from = parent === -1 ? '' : from.slice(0, parent);
+                              }
+                          };
+                          const lower = (from, to) => {
+                              const [a, b] = [parse(from), parse(to)];
+                              return a && b && compare(b, a) < 0;
+                          };
+                          const downgrades = new Set();
                           for (const [path, entry] of Object.entries(after)) {
-                              const version = parse(entry.version);
-                              if (path === '' || !version) continue;
-                              const same = parse(before[path]?.version);
-                              const floor = lowest.get(name(path));
-                              if (same && compare(version, same) < 0) downgrades.push(`${path}: ${before[path].version} -> ${entry.version}`);
-                              else if (floor && compare(version, floor.version) < 0) downgrades.push(`${path}: ${floor.text} -> ${entry.version}`);
+                              if (path !== '' && lower(before[path]?.version, entry.version)) {
+                                  downgrades.add(`${path}: ${before[path].version} -> ${entry.version}`);
+                              }
+                              // Each dependency of a package that stays must not resolve to a lower version than before.
+                              if (before[path] === undefined) continue;
+                              const names = new Set(
+                                  ['dependencies', 'optionalDependencies', 'peerDependencies', ...(path === '' ? ['devDependencies'] : [])]
+                                      .flatMap((field) => Object.keys(before[path][field] ?? {})),
+                              );
+                              for (const name of names) {
+                                  const [was, is] = [resolve(before, path, name), resolve(after, path, name)];
+                                  if (was && is && lower(before[was].version, after[is].version)) {
+                                      downgrades.add(`${path || 'the root'} -> ${name}: ${before[was].version} -> ${after[is].version}`);
+                                  }
+                              }
                           }
-                          if (downgrades.length > 0) {
-                              console.log(`::error::npm update --before lowered ${downgrades.length} locked versions:`);
+                          if (downgrades.size > 0) {
+                              console.log(`::error::npm update --before lowered ${downgrades.size} locked versions:`);
                               for (const line of downgrades) console.log(line);
                               process.exit(1);
                           }
