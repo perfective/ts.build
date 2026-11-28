@@ -36,6 +36,8 @@ jobs:
                   TAG: ${{ github.ref_name }}
                   # One key on each line: `SHA256:...` for an SSH key, or the fingerprint of a GPG key.
                   SIGNING_KEYS: ${{ vars.RELEASE_SIGNING_KEYS }}
+                  # The armored public keys of the GPG keys in RELEASE_SIGNING_KEYS.
+                  GPG_KEYS: ${{ vars.RELEASE_SIGNING_GPG_KEYS }}
               run: |
                   set -euo pipefail
                   if [[ ! "${TAG}" =~ ^v([0-9]+)\.([0-9]+)\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
@@ -59,34 +61,46 @@ jobs:
                       exit 1
                   fi
                   # GitHub verifies a signature from the key of any user, so the signer key must also be pinned.
-                  # An SSH signature is checked against its own public key, and GitHub has checked a GPG signature.
+                  # Each check verifies the signature itself and reads the key that verified it.
+                  # The issuer fingerprint in a GPG signature is only a hint: an unhashed one is not signed.
                   if [ -z "${SIGNING_KEYS//[[:space:]]/}" ]; then
                       echo "::error::The RELEASE_SIGNING_KEYS repository variable is empty."
                       exit 1
                   fi
                   jq -r '.verification.signature' <<<"${tag}" > tag.sig
                   jq -j '.verification.payload' <<<"${tag}" > tag.payload
+                  key=
+                  primary=
                   case "$(head -n 1 tag.sig)" in
                       '-----BEGIN SSH SIGNATURE-----')
                           key="$(ssh-keygen -Y check-novalidate -n git -s tag.sig < tag.payload 2>/dev/null \
                               | sed -n 's/^Good "git" signature with .* key \(SHA256:[^ ]*\)$/\1/p' || true)"
                           ;;
                       '-----BEGIN PGP SIGNATURE-----')
+                          if [ -z "${GPG_KEYS//[[:space:]]/}" ]; then
+                              echo "::error::${TAG} has a GPG signature, and RELEASE_SIGNING_GPG_KEYS is empty."
+                              exit 1
+                          fi
                           GNUPGHOME="$(mktemp -d)"
                           export GNUPGHOME
-                          key="$(gpg --batch --list-packets tag.sig 2>/dev/null \
-                              | sed -n 's/.*(issuer fpr v[0-9] \([0-9A-Fa-f]*\)).*/\1/p' | head -n 1 || true)"
+                          gpg --batch --quiet --import <<<"${GPG_KEYS}" 2>/dev/null || true
+                          # VALIDSIG <signing key fingerprint> ... <primary key fingerprint>
+                          validsig="$(gpg --batch --trust-model always --status-fd 1 \
+                              --verify tag.sig tag.payload 2>/dev/null \
+                              | awk '$1 == "[GNUPG:]" && $2 == "VALIDSIG" { print $3, $12; exit }' || true)"
+                          read -r key primary <<<"${validsig}" || true
                           key="${key^^}"
-                          ;;
-                      *)
-                          key=
+                          primary="${primary^^}"
                           ;;
                   esac
                   if [ -z "${key}" ]; then
-                      echo "::error::The signer key of ${TAG} is not found."
+                      echo "::error::The signature of ${TAG} does not verify with a pinned key."
                       exit 1
                   fi
-                  if ! tr -d ' \t\r' <<<"${SIGNING_KEYS}" | grep -Fxq -- "${key}"; then
+                  pinned() {
+                      [ -n "$1" ] && tr -d ' \t\r' <<<"${SIGNING_KEYS}" | grep -Fxq -- "$1"
+                  }
+                  if ! pinned "${key}" && ! pinned "${primary}"; then
                       echo "::error::${TAG} is signed with ${key}, which is not in RELEASE_SIGNING_KEYS."
                       exit 1
                   fi

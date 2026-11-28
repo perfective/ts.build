@@ -212,6 +212,11 @@ Release steps:
       Its signer key must be in the `RELEASE_SIGNING_KEYS` repository variable,
       one key on each line: `SHA256:...` for an SSH key, or the fingerprint of a GPG key.
       GitHub verifies a signature from the registered key of any user, so `verified` alone does not name the signer.
+    - The job verifies the signature again and reads the key from that check, not from the signature header:
+      `ssh-keygen -Y check-novalidate` for SSH, and the `VALIDSIG` status of `gpg --verify` for GPG.
+      The issuer fingerprint in a GPG signature is only a hint, and an unhashed one is not signed.
+      For GPG, the `RELEASE_SIGNING_GPG_KEYS` repository variable has the armored public keys.
+      The fingerprint of the signing subkey or of its primary key must be in `RELEASE_SIGNING_KEYS`.
     - The tag commit must be on `main` or on `vX.Y.x`.
     - The tag version must be the same as the version in `package.json`.
       The version must have a changelog section.
