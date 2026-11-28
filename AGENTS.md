@@ -472,6 +472,9 @@ It does not push to other PRs.
   A step after Claude posts each reply as `github-actions[bot]`, only on a thread of a saved finding,
   and adds `help wanted` when a reply has **NEEDS HUMAN**.
   Claude can change the findings file, so the later steps take the finding IDs from the output of the save step.
+  A finding without a posted reply goes into a **NEEDS HUMAN** comment.
+  The round marker is posted only when each finding has a reply or is in that comment,
+  so a failed post leaves the head open for another run.
   It skips a reply that mentions `@claude` or `@cursoragent`.
 - The job resolves a thread only when the last reply, which the workflow posted for Claude,
   has the full SHA of the fix commit or of the reviewed commit, and does not have **NEEDS HUMAN**.

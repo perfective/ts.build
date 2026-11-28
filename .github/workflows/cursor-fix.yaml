@@ -464,6 +464,7 @@ jobs:
             # A reply with **NEEDS HUMAN** adds the `help wanted` label.
             - name: Post Claude's replies
               if: ${{ !cancelled() && steps.head.outputs.current == 'true' }}
+              id: replies
               working-directory: ${{ runner.temp }}
               env:
                   GH_TOKEN: ${{ github.token }}
@@ -491,10 +492,16 @@ jobs:
                           '*Posted by GitHub Actions (Cursor Fix workflow)*')"
                       gh pr edit "${PR}" --add-label "help wanted"
                   }
+                  # Every saved finding has a reply or is in a posted report: the round can be recorded.
+                  # When the report fails to post, `set -e` stops the step first, and the head stays open for a retry.
+                  accounted() {
+                      echo "accounted=true" >> "${GITHUB_OUTPUT}"
+                  }
                   posted=
                   if [ ! -f "${replies}" ]; then
                       echo "Claude wrote no replies."
                       report
+                      accounted
                       exit 0
                   fi
                   if ! jq -e 'type == "array" and all(.[]; (.comment_id | type) == "number"
@@ -502,6 +509,7 @@ jobs:
                       "${replies}" > /dev/null; then
                       echo "::error::${replies} is not an array of {comment_id, body} replies."
                       report
+                      accounted
                       exit 1
                   fi
                   human=false
@@ -531,6 +539,7 @@ jobs:
                       posted="${posted} ${id}"
                   done < <(jq -c '.[]' "${replies}")
                   report
+                  accounted
                   if [ "${failed}" = "true" ]; then
                       echo "::error::Some replies could not be posted. The report lists their findings."
                       exit 1
@@ -594,8 +603,10 @@ jobs:
                       done
 
             # The marker counts the round, and it stops a second fix run for the same head.
+            # Only after every saved finding has a reply or is in a posted report:
+            # without the marker, the head stays open for another fix run.
             - name: Record the round
-              if: ${{ !cancelled() && steps.head.outputs.current == 'true' }}
+              if: ${{ !cancelled() && steps.head.outputs.current == 'true' && steps.replies.outputs.accounted == 'true' }}
               working-directory: ${{ runner.temp }}
               env:
                   GH_TOKEN: ${{ github.token }}
