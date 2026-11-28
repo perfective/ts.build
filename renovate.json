@@ -34,8 +34,7 @@
             "matchManagers": ["github-actions"],
             "extends": ["schedule:weekly"],
             "minimumReleaseAge": "3 days",
-            "additionalBranchPrefix": "github-actions-",
-            "addLabels": ["github-actions"]
+            "additionalBranchPrefix": "github-actions-"
         }
     ]
 }

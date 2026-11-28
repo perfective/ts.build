@@ -341,7 +341,7 @@ for example `actions/checkout@<sha> # v7.0.1`.
 Do not use a tag such as `@v7`: a tag can move to other code.
 Renovate updates the pins each week (`helpers:pinGitHubActionDigests`),
 3 days after the release (`minimumReleaseAge` in the `github-actions` rule).
-These PRs have a `renovate/github-actions-` branch and the `github-actions` label.
+These PRs have a `renovate/github-actions-` branch.
 Dependency Review skips them, so the maintainer reviews them.
 On GitHub Actions, Claude Code removes `CLAUDE_CODE_OAUTH_TOKEN` from the commands that Claude runs,
 for example `npm install`.
