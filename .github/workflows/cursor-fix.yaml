@@ -241,6 +241,7 @@ jobs:
             # and it writes its replies to a file that a later step posts.
             - name: Save the Cursor findings
               if: steps.head.outputs.current == 'true'
+              id: findings
               env:
                   GH_TOKEN: ${{ github.token }}
                   OWNER: ${{ github.repository_owner }}
@@ -276,6 +277,9 @@ jobs:
                               replies: [.comments.nodes[1:][] | {author: who, body}]}]' \
                       > "${RUNNER_TEMP}/cursor-findings.json"
                   echo "Saved $(jq length "${RUNNER_TEMP}/cursor-findings.json") findings."
+                  # Claude can change the file, but not this output: the later steps trust only these IDs.
+                  echo "ids=$(jq -r '[.[].comment_id] | join(" ")' "${RUNNER_TEMP}/cursor-findings.json")" \
+                      >> "${GITHUB_OUTPUT}"
 
             # The part of the prompt that depends on the kind of PR.
             - name: Describe the task
@@ -455,6 +459,7 @@ jobs:
                   } >> "${GITHUB_OUTPUT}"
 
             # Post the replies that Claude wrote, only on the threads of the saved findings.
+            # The IDs come from the output of the save step: Claude can rewrite the findings file.
             # A reply with **NEEDS HUMAN** adds the `help wanted` label.
             - name: Post Claude's replies
               if: ${{ !cancelled() && steps.head.outputs.current == 'true' }}
@@ -463,6 +468,7 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
                   GH_REPO: ${{ github.repository }}
                   PR: ${{ needs.route.outputs.pr }}
+                  IDS: ${{ steps.findings.outputs.ids }}
               run: |
                   set -euo pipefail
                   replies=/tmp/cursor-replies.json
@@ -480,7 +486,7 @@ jobs:
                   while IFS= read -r reply; do
                       id="$(jq -r '.comment_id' <<< "${reply}")"
                       body="$(jq -r '.body' <<< "${reply}")"
-                      if ! jq -e --argjson id "${id}" 'any(.[]; .comment_id == $id)' cursor-findings.json > /dev/null; then
+                      if ! [[ " ${IDS} " == *" ${id} "* ]]; then
                           echo "::warning::Skipped a reply to comment ${id}: it is not a saved Cursor finding."
                           continue
                       fi
@@ -499,7 +505,7 @@ jobs:
                       gh pr edit "${PR}" --add-label "help wanted"
                   fi
 
-            # A thread is resolved only when the last reply, which the step above posted for Claude,
+            # A thread is resolved only when it is a saved finding, and the last reply, which the step above posted for Claude,
             # names the full SHA of its commit or of the reviewed commit, and does not ask for a decision.
             # `continue-on-error` keeps a GraphQL failure from hiding that the commit landed.
             - name: Resolve the threads Claude fixed
@@ -513,6 +519,7 @@ jobs:
                   PR: ${{ needs.route.outputs.pr }}
                   SHA: ${{ steps.after.outputs.sha }}
                   BEFORE: ${{ needs.route.outputs.sha }}
+                  IDS: ${{ steps.findings.outputs.ids }}
               run: |
                   set -euo pipefail
                   if ! [[ "${SHA}" =~ ^[0-9a-f]{40}$ ]] || ! [[ "${BEFORE}" =~ ^[0-9a-f]{40}$ ]]; then
@@ -527,17 +534,19 @@ jobs:
                                       nodes {
                                           id
                                           isResolved
-                                          firstComment: comments(first: 1) { nodes { author { login } } }
+                                          firstComment: comments(first: 1) { nodes { databaseId author { login } } }
                                           lastComment: comments(last: 1) { nodes { author { login } body } }
                                       }
                                   }
                               }
                           }
                       }' \
-                      | jq -r --arg sha "${SHA}" --arg before "${BEFORE}" '
+                      | jq -r --arg sha "${SHA}" --arg before "${BEFORE}" --arg ids "${IDS}" '
                           def who: (.author.login // "") | sub("\\[bot\\]$"; "");
-                          .data.repository.pullRequest.reviewThreads.nodes[]
+                          ($ids | split(" ") | map(select(. != "") | tonumber)) as $saved
+                          | .data.repository.pullRequest.reviewThreads.nodes[]
                           | select(.isResolved | not)
+                          | select(.firstComment.nodes[0].databaseId as $id | $saved | index($id))
                           | select(.firstComment.nodes[0] | who == "cursor")
                           | select(.lastComment.nodes[0] | who == "github-actions")
                           | select(.lastComment.nodes[0].body | contains("NEEDS HUMAN") | not)
