@@ -219,7 +219,8 @@ Release steps:
       The fingerprint of the signing subkey or of its primary key must be in `RELEASE_SIGNING_KEYS`.
       gpg must report `GOODSIG`, and no bad, expired, or revoked signature.
     - The signed tag object must have the name of the pushed tag and point to the commit of the run.
-      Thus, a rerun after the tag moves fails.
+      Thus, a rerun of `verify` fails if the tag now points to a different commit.
+      A rerun of only the failed `npm` job reuses `verify` and `build`, and publishes the artifact of the verified commit.
     - The tag commit must be on `main` or on `vX.Y.x`.
     - The tag version must be the same as the version in `package.json`.
       The version must have a changelog section.
