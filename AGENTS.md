@@ -465,20 +465,27 @@ pick the next sub-issue, let Claude open its PR, land the PR, and pick the next 
 - To start a queue, the maintainer adds the `claude-queue` label to the parent issue.
   To pause it, the maintainer removes the label.
 - The start records the ordered sub-issues as the approved queue, in a comment from `github-actions[bot]`.
+  The maintainer approves only the sub-issues that existed when the label was added:
+  if the parent's timeline has a sub-issue added or removed at or after the label event, the queue does not start.
+  A retry of the same label event reuses its approval.
   Later closes use only that list.
   If the sub-issues change, the queue stops,
   because a user with triage access can add sub-issues, and the maintainer's token starts the work.
   To approve the new list, remove the `claude-queue` label and add it again.
+  GitHub records no timeline event for a new order of the sub-issues.
+  Thus, only the comparison with the approved list finds a new order, and it cannot see one made in the seconds
+  between the label event and the start.
 - When the queue starts, or when one of its sub-issues closes,
   the job adds the `claude` label to the first open sub-issue of the approved list.
   That label starts the [Claude workflow](#claude-issue-work), which opens a PR from the current `main`.
   The PR closes the sub-issue with `Closes #<number>`, so the merge starts the next sub-issue.
-- The job does nothing while an open sub-issue already has the `claude` label.
+- The job does nothing while any open sub-issue of the approved list already has the `claude` label.
   To run a sub-issue again, remove its `claude` label and add it again.
 - A sub-issue closed as not planned also moves the queue.
 - The queue does not start or move while a sub-issue is in another repository.
   Issue numbers are local to a repository.
 - The queue stops at a release issue (the `release` label, or a `Release @perfective/build v` title).
+  Like the workflows, the job matches labels and titles without case.
   The Claude workflow skips it, and Publish PR takes the `claude` label as the approval of a release.
 - The job posts each step on the parent: the approved list, each start, each stop, and the end of the queue.
   It trusts only the markers in comments from `github-actions[bot]`.

@@ -99,6 +99,25 @@ jobs:
                       gh api graphql -f query="${query}" -f owner="${REPO%%/*}" -f name="${REPO#*/}" -F number="$1" \
                           --jq '.data.repository.issue'
                   }
+                  # The label events and the sub-issue changes of the parent, oldest first.
+                  timeline='
+                      query($owner: String!, $name: String!, $number: Int!) {
+                          repository(owner: $owner, name: $name) {
+                              issue(number: $number) {
+                                  timelineItems(last: 100, itemTypes: [LABELED_EVENT, SUB_ISSUE_ADDED_EVENT, SUB_ISSUE_REMOVED_EVENT]) {
+                                      nodes {
+                                          __typename
+                                          ... on LabeledEvent { createdAt actor { login } label { name } }
+                                          ... on SubIssueAddedEvent { createdAt }
+                                          ... on SubIssueRemovedEvent { createdAt }
+                                      }
+                                  }
+                              }
+                          }
+                      }'
+                  # GitHub Actions compares strings without case in `contains` and `startsWith`,
+                  # so the Claude and Publish PR workflows match labels and titles without case. Do the same here.
+                  labeled='any(.labels.nodes[]; .name | ascii_downcase == $label)'
 
                   # A parent or a sub-issue can be in another repository of the same owner,
                   # and its number is not a number in this repository.
@@ -110,7 +129,7 @@ jobs:
                       [ -n "${parent}" ] || stop "Issue #${NUMBER} has no parent issue in ${REPO}."
                   fi
                   queue="$(issue "${parent}")"
-                  jq -e '.state == "OPEN" and any(.labels.nodes[]; .name == "claude-queue")' <<< "${queue}" \
+                  jq -e --arg label claude-queue ".state == \"OPEN\" and ${labeled}" <<< "${queue}" \
                       > /dev/null || stop "Issue #${parent} is not an open issue with the claude-queue label."
 
                   # Read the comments first: a failed read fails the job, instead of a second notice.
@@ -139,54 +158,84 @@ jobs:
                           "<!-- issue-queue-foreign: ${current} -->"
                       stop "Issue #${parent} has sub-issues in another repository."
                   }
+                  approved_list() {
+                      jq -r --argjson id "$1" '.[] | select(.id == $id) | .body
+                          | capture("<!-- issue-queue-approved: (?<list>[0-9 ]+) -->").list' <<< "${comments}"
+                  }
                   if [ "${ACTION}" = "labeled" ]; then
                       [ -n "${current}" ] || stop "Issue #${parent} has no sub-issues."
-                      # The maintainer added the label: record the sub-issues as the approved queue.
-                      list="$(sed 's/\([0-9][0-9]*\)/#\1/g; s/ /, /g' <<< "${current}")"
-                      approval="$(comment "${SENDER} started the queue: ${list}." \
-                          "<!-- issue-queue-approved: ${current} -->")"
-                      approved="${current}"
+                      # The label event identifies the writer, but the job reads the sub-issues later.
+                      # The writer approves only the sub-issues that existed when the label was added:
+                      # stop when a sub-issue was added or removed at or after that time.
+                      events="$(gh api graphql -f query="${timeline}" -f owner="${REPO%%/*}" -f name="${REPO#*/}" \
+                          -F number="${parent}" --jq '.data.repository.issue.timelineItems.nodes')"
+                      labeled_at="$(jq -r --arg sender "${SENDER}" '[.[] | select(.__typename == "LabeledEvent"
+                          and (.label.name | ascii_downcase) == "claude-queue" and .actor.login == $sender)
+                          | .createdAt] | last // ""' <<< "${events}")"
+                      if [ -z "${labeled_at}" ]; then
+                          echo "::error::The timeline of #${parent} has no claude-queue label event by ${SENDER}."
+                          exit 1
+                      fi
+                      if jq -e --arg at "${labeled_at}" 'any(.[]; .__typename != "LabeledEvent" and .createdAt >= $at)' \
+                          <<< "${events}" > /dev/null; then
+                          notice "The sub-issues changed after the claude-queue label was added, so the queue does not start.
+                  To approve the current list, remove the claude-queue label and add it again." \
+                              "<!-- issue-queue-unconfirmed: ${labeled_at} -->"
+                          stop "The sub-issues of #${parent} changed after the label event."
+                      fi
+                      # A retry of the same label event reuses the approval that it already posted.
+                      approval="$(jq -r --arg at "${labeled_at}" '[.[] | select(.created_at >= $at
+                          and (.body | test("<!-- issue-queue-approved: [0-9 ]+ -->")))] | first | .id // ""' \
+                          <<< "${comments}")"
+                      if [ -z "${approval}" ]; then
+                          list="$(sed 's/\([0-9][0-9]*\)/#\1/g; s/ /, /g' <<< "${current}")"
+                          approval="$(comment "${SENDER} started the queue: ${list}." \
+                              "<!-- issue-queue-approved: ${current} -->")"
+                          approved="${current}"
+                      else
+                          approved="$(approved_list "${approval}")"
+                      fi
                   else
                       approval="$(jq -r '[.[] | select(.body | test("<!-- issue-queue-approved: [0-9 ]+ -->"))]
                           | last | .id // ""' <<< "${comments}")"
                       [ -n "${approval}" ] || stop "Issue #${parent} has no approved queue."
-                      approved="$(jq -r --argjson id "${approval}" '.[] | select(.id == $id) | .body
-                          | capture("<!-- issue-queue-approved: (?<list>[0-9 ]+) -->").list' <<< "${comments}")"
-                      if [ "${approved}" != "${current}" ]; then
-                          notice "The sub-issues changed after the queue started, so the queue stops.
+                      approved="$(approved_list "${approval}")"
+                  fi
+                  if [ "${approved}" != "${current}" ]; then
+                      notice "The sub-issues changed after the queue started, so the queue stops.
                   To approve the new list, remove the claude-queue label and add it again." \
-                              "<!-- issue-queue-changed: ${approval} -->"
-                          stop "The sub-issues of #${parent} changed after the approval."
-                      fi
+                          "<!-- issue-queue-changed: ${approval} -->"
+                      stop "The sub-issues of #${parent} changed after the approval."
                   fi
 
                   read -r -a order <<< "${approved}"
                   total="${#order[@]}"
                   state() {
-                      jq -r --argjson n "$1" '.subIssues.nodes[] | select(.number == $n)
-                          | if .state != "OPEN" then "closed"
-                            elif any(.labels.nodes[]; .name == "claude") then "running"
-                            else "open" end' <<< "${queue}"
+                      jq -r --argjson n "$1" --arg label claude ".subIssues.nodes[] | select(.number == \$n)
+                          | if .state != \"OPEN\" then \"closed\" elif ${labeled} then \"running\" else \"open\" end" \
+                          <<< "${queue}"
                   }
+                  # One sub-issue at a time: check the whole list for a running sub-issue first.
+                  # If the run that added its label did not post the start notice, post it now.
                   position=0
                   for n in "${order[@]}"; do
                       position=$((position + 1))
-                      case "$(state "${n}")" in
-                          closed) continue ;;
-                          running)
-                              # One sub-issue at a time. If the run before this one added the label
-                              # but did not post the start notice, post it now.
-                              notice "Started #${n} (${position} of ${total})." "<!-- issue-queue-started: ${n} -->"
-                              stop "Sub-issue #${n} of #${parent} is still open with the claude label."
-                              ;;
-                      esac
+                      if [ "$(state "${n}")" = "running" ]; then
+                          notice "Started #${n} (${position} of ${total})." "<!-- issue-queue-started: ${n} -->"
+                          stop "Sub-issue #${n} of #${parent} is still open with the claude label."
+                      fi
+                  done
+                  position=0
+                  for n in "${order[@]}"; do
+                      position=$((position + 1))
+                      [ "$(state "${n}")" = "open" ] || continue
                       # The Claude workflow skips release issues, and Publish PR takes a `Release @perfective/build v`
                       # title with the `claude` label as the maintainer's approval of a release.
-                      if jq -e --argjson n "${n}" '.subIssues.nodes[] | select(.number == $n)
-                          | any(.labels.nodes[]; .name == "release")
-                            or (.title | startswith("Release @perfective/build v"))' <<< "${queue}" > /dev/null; then
+                      if jq -e --argjson n "${n}" --arg label release ".subIssues.nodes[] | select(.number == \$n)
+                          | ${labeled} or (.title | ascii_downcase | startswith(\"release @perfective/build v\"))" \
+                          <<< "${queue}" > /dev/null; then
                           notice "#${n} is a release issue, so the queue does not start it.
-                  Close it or remove it from the sub-issues, and then add the claude-queue label again." \
+                  Close it or remove it from the sub-issues, and then remove the claude-queue label and add it again." \
                               "<!-- issue-queue-release: ${n} -->"
                           stop "Sub-issue #${n} of #${parent} is a release issue."
                       fi
