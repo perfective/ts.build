@@ -146,6 +146,12 @@ Use only if the review branch itself must also be a single commit.
 * Default branch only, unless a `vX.Y.x` maintenance line is intentionally covered.
 * npm release-age cooldown (pilot: via `security:minimumReleaseAgeNpm`);
   security updates bypass the cooldown.
+* For GitHub Actions digest updates, Renovate measures the 3-day minimum age
+  from the matching version's release timestamp (`minimumReleaseAge` in the `github-actions` rule).
+  If an existing tag moves to a different commit and that timestamp is already at least 3 days old,
+  Renovate can propose the new commit SHA on its next scheduled run.
+  Their `renovate/github-actions-` branches skip Dependency Review,
+  because that workflow runs the PR version of itself with secrets.
 
 
 == Release-note review (agent or human)
