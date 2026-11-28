@@ -30,9 +30,12 @@
             "addLabels": ["help wanted"]
         },
         {
-            "description": "GitHub Actions: pinned to commit SHAs, updated weekly",
+            "description": "GitHub Actions: pinned to commit SHAs, updated weekly after a 3-day wait; the renovate/github-actions- branches skip Dependency Review",
             "matchManagers": ["github-actions"],
-            "extends": ["schedule:weekly"]
+            "extends": ["schedule:weekly"],
+            "minimumReleaseAge": "3 days",
+            "additionalBranchPrefix": "github-actions-",
+            "addLabels": ["github-actions"]
         }
     ]
 }

@@ -339,7 +339,10 @@ Outside the CI matrix, jobs that install dependencies use Node.js `26.x`.
 Each action is pinned to a commit SHA, with its version in a comment,
 for example `actions/checkout@<sha> # v7.0.1`.
 Do not use a tag such as `@v7`: a tag can move to other code.
-Renovate updates the pins each week (`helpers:pinGitHubActionDigests`).
+Renovate updates the pins each week (`helpers:pinGitHubActionDigests`),
+3 days after the release (`minimumReleaseAge` in the `github-actions` rule).
+These PRs have a `renovate/github-actions-` branch and the `github-actions` label.
+Dependency Review skips them, so the maintainer reviews them.
 On GitHub Actions, Claude Code removes `CLAUDE_CODE_OAUTH_TOKEN` from the commands that Claude runs,
 for example `npm install`.
 `GH_TOKEN` and `GITHUB_TOKEN` stay in those commands, so an install script can read the GitHub App token.
@@ -409,6 +412,11 @@ Comments from anyone else are only input.
 [Dependency Review](.github/workflows/dependency-review.yaml) runs the skill on a Renovate PR
 when `renovate[bot]` sends an `opened`, `reopened`, or `synchronize` event.
 To run the review manually, add the `claude-review` label.
+
+- The job skips GitHub Actions updates (`renovate/github-actions-` branches), also with the label.
+  The job runs on `pull_request`, so it runs the workflow version of the PR.
+  The new action code would run with a write token, `id-token: write`, and `CLAUDE_CODE_OAUTH_TOKEN`.
+  The job matches the branch name, because Renovate adds labels after it opens the PR.
 
 - Claude pushes each signed follow-up commit with the Claude GitHub App token.
   This token makes CI run.
