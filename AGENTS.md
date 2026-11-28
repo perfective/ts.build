@@ -217,13 +217,17 @@ Release steps:
       The issuer fingerprint in a GPG signature is only a hint, and an unhashed one is not signed.
       For GPG, the `RELEASE_SIGNING_GPG_KEYS` repository variable has the armored public keys.
       The fingerprint of the signing subkey or of its primary key must be in `RELEASE_SIGNING_KEYS`.
+      gpg must report `GOODSIG`, and no bad, expired, or revoked signature.
+    - The signed tag object must have the name of the pushed tag and point to the commit of the run.
+      Thus, a rerun after the tag moves fails.
     - The tag commit must be on `main` or on `vX.Y.x`.
     - The tag version must be the same as the version in `package.json`.
       The version must have a changelog section.
     - The `build` job runs `npm ci`, `npm run lint:build`, and `npm run dist`, and uploads `dist/` as an artifact.
+      The artifact is kept for 30 days, the longest wait for an environment approval.
       It has no `id-token` permission, because the build runs the code of the dev dependencies.
     - The `npm` job runs in the `npm` environment.
-      It only downloads the artifact, checks its name and version, and publishes it
+      It only downloads the artifact, checks its name and version, rejects a `publishConfig`, and publishes it
       with provenance through GitHub OIDC and `--ignore-scripts`.
       It does not check out or install the repository.
     - The job skips versions that are already on npm.

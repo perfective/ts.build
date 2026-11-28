@@ -34,6 +34,8 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
                   REPO: ${{ github.repository }}
                   TAG: ${{ github.ref_name }}
+                  # The commit of the tag push. A rerun keeps it, also when the tag ref moves.
+                  COMMIT: ${{ github.sha }}
                   # One key on each line: `SHA256:...` for an SSH key, or the fingerprint of a GPG key.
                   SIGNING_KEYS: ${{ vars.RELEASE_SIGNING_KEYS }}
                   # The armored public keys of the GPG keys in RELEASE_SIGNING_KEYS.
@@ -84,10 +86,16 @@ jobs:
                           GNUPGHOME="$(mktemp -d)"
                           export GNUPGHOME
                           gpg --batch --quiet --import <<<"${GPG_KEYS}" 2>/dev/null || true
+                          # gpg must succeed with GOODSIG and VALIDSIG, and without a revoked, expired, or bad status.
                           # VALIDSIG <signing key fingerprint> ... <primary key fingerprint>
-                          validsig="$(gpg --batch --trust-model always --status-fd 1 \
-                              --verify tag.sig tag.payload 2>/dev/null \
-                              | awk '$1 == "[GNUPG:]" && $2 == "VALIDSIG" { print $3, $12; exit }' || true)"
+                          validsig=
+                          if status="$(gpg --batch --trust-model always --status-fd 1 \
+                              --verify tag.sig tag.payload 2>/dev/null)" \
+                              && grep -q '^\[GNUPG:\] GOODSIG ' <<<"${status}" \
+                              && ! grep -Eq '^\[GNUPG:\] (BADSIG|ERRSIG|EXPSIG|EXPKEYSIG|REVKEYSIG) ' \
+                                  <<<"${status}"; then
+                              validsig="$(awk '$1 == "[GNUPG:]" && $2 == "VALIDSIG" { print $3, $12; exit }' <<<"${status}")"
+                          fi
                           read -r key primary <<<"${validsig}" || true
                           key="${key^^}"
                           primary="${primary^^}"
@@ -109,6 +117,15 @@ jobs:
                       exit 1
                   fi
                   sha="$(jq -r '.object.sha' <<<"${tag}")"
+                  # The signature covers the tag object, so its name and its commit must be the ones that started this run.
+                  if [ "$(jq -r '.tag' <<<"${tag}")" != "${TAG}" ]; then
+                      echo "::error::The tag object of ${TAG} has the name $(jq -r '.tag' <<<"${tag}")."
+                      exit 1
+                  fi
+                  if [ "${sha}" != "${COMMIT}" ]; then
+                      echo "::error::${TAG} points to ${sha}, and this run started for ${COMMIT}."
+                      exit 1
+                  fi
 
                   # Publish only commits that are on `main` or on the backport branch of this version.
                   # The npm dist-tag `latest` is for a non-prerelease on `main` only.
@@ -207,7 +224,8 @@ jobs:
                   name: dist
                   path: dist/
                   if-no-files-found: error
-                  retention-days: 1
+                  # Keeps the package through the approval of the `npm` environment (up to 30 days) and a rerun.
+                  retention-days: 30
 
     # Only this job can get an OIDC token.
     # It does not check out or install the repository, and it runs no package scripts.
@@ -245,6 +263,13 @@ jobs:
                   if [ "$(jq -r '.name' dist/package.json)" != "${NAME}" ] \
                       || [ "$(jq -r '.version' dist/package.json)" != "${VERSION}" ]; then
                       echo "::error::dist/package.json is not ${NAME}@${VERSION}."
+                      exit 1
+                  fi
+                  # npm applies `publishConfig` (for example, `registry`) before the OIDC exchange,
+                  # also with --ignore-scripts.
+                  # This package has none, so the artifact must not have it.
+                  if [ "$(jq 'has("publishConfig")' dist/package.json)" != "false" ]; then
+                      echo "::error::dist/package.json has publishConfig."
                       exit 1
                   fi
                   if npm view "${NAME}@${VERSION}" version > /dev/null 2>&1; then
