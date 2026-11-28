@@ -190,6 +190,8 @@ jobs:
             # An existing branch already has the version, unless it stopped before the Publish commit.
             # `--before` keeps the release age of Renovate (`security:minimumReleaseAgeNpm`, 3 days):
             # `npm update` does not resolve a version that was published in the last 3 days.
+            # Renovate merges security updates without that wait, so `--before` can lower a locked version.
+            # Thus, the step fails when a version in the lockfile goes down.
             - name: Bump the version and update the lockfile
               id: bump
               run: |
@@ -197,7 +199,56 @@ jobs:
                   if [ "$(jq -r .version package.json)" != "${VERSION}" ]; then
                       npm version "${VERSION}" --no-git-tag-version
                       before="$(date -u -d '3 days ago' '+%Y-%m-%dT%H:%M:%SZ')"
+                      cp package-lock.json "${RUNNER_TEMP}/package-lock.before.json"
                       npm update --ignore-scripts --before "${before}"
+                      node - "${RUNNER_TEMP}/package-lock.before.json" package-lock.json <<'JS'
+                          const fs = require('node:fs');
+                          const [before, after] = process.argv.slice(2)
+                              .map((file) => JSON.parse(fs.readFileSync(file, 'utf8')).packages ?? {});
+                          const parse = (version) => {
+                              const match = /^(\d+)\.(\d+)\.(\d+)(?:-([^+]+))?/u.exec(version ?? '');
+                              return match && { core: match.slice(1, 4).map(Number), pre: match[4] ? match[4].split('.') : [] };
+                          };
+                          const compareId = (a, b) => {
+                              const [x, y] = [/^\d+$/u.test(a), /^\d+$/u.test(b)];
+                              if (x && y) return Number(a) - Number(b);
+                              if (x || y) return x ? -1 : 1;
+                              return a < b ? -1 : Number(a > b);
+                          };
+                          // Semantic Versioning precedence: the core numbers, then a prerelease is lower than its release.
+                          const compare = (a, b) => {
+                              for (let i = 0; i < 3; i++) if (a.core[i] !== b.core[i]) return a.core[i] - b.core[i];
+                              if (a.pre.length === 0 || b.pre.length === 0) return b.pre.length - a.pre.length;
+                              for (let i = 0; i < Math.min(a.pre.length, b.pre.length); i++) {
+                                  const order = compareId(a.pre[i], b.pre[i]);
+                                  if (order !== 0) return order;
+                              }
+                              return a.pre.length - b.pre.length;
+                          };
+                          const name = (path) => path.split('node_modules/').pop();
+                          const lowest = new Map();
+                          for (const [path, entry] of Object.entries(before)) {
+                              const version = parse(entry.version);
+                              if (path === '' || !version) continue;
+                              const current = lowest.get(name(path));
+                              if (!current || compare(version, current.version) < 0) lowest.set(name(path), { version, text: entry.version });
+                          }
+                          // A version is lower than the one at the same path, or lower than each version of that package.
+                          const downgrades = [];
+                          for (const [path, entry] of Object.entries(after)) {
+                              const version = parse(entry.version);
+                              if (path === '' || !version) continue;
+                              const same = parse(before[path]?.version);
+                              const floor = lowest.get(name(path));
+                              if (same && compare(version, same) < 0) downgrades.push(`${path}: ${before[path].version} -> ${entry.version}`);
+                              else if (floor && compare(version, floor.version) < 0) downgrades.push(`${path}: ${floor.text} -> ${entry.version}`);
+                          }
+                          if (downgrades.length > 0) {
+                              console.log(`::error::npm update --before lowered ${downgrades.length} locked versions:`);
+                              for (const line of downgrades) console.log(line);
+                              process.exit(1);
+                          }
+                  JS
                       echo "bumped=true" >> "${GITHUB_OUTPUT}"
                   else
                       echo "bumped=false" >> "${GITHUB_OUTPUT}"
@@ -219,7 +270,8 @@ jobs:
                       echo "text<<${delimiter}"
                       if [ "${BUMPED}" = "true" ]; then
                           echo "The workflow set \`package.json\` to \`${VERSION}\` and ran \`npm update\`."
-                          echo "\`npm update\` skipped the versions that were published in the last 3 days."
+                          echo "\`npm update\` skipped the versions that were published in the last 3 days,"
+                          echo "and it lowered no version that the lockfile already had."
                           echo "Leave those edits as they are, and include both files in the commit."
                       else
                           echo "\`package.json\` on this branch is already \`${VERSION}\`."

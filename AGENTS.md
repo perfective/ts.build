@@ -190,6 +190,8 @@ Release steps:
 2.  The [Publish PR](.github/workflows/publish-pr.yaml) workflow updates the release files.
     - It runs `npm update --before` with the date of 3 days ago,
       so the lockfile gets no version that is newer than the Renovate release age.
+      Renovate merges security updates without that wait, so `--before` can lower a locked version.
+      Thus, the step fails when a version in the lockfile goes down.
     - It opens a PR from the `publish-vX.Y.Z` branch.
       The PR has a signed Publish commit.
       When the release issue is open, the PR body has `Closes #N`.
