@@ -181,6 +181,9 @@ jobs:
               with:
                   claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
                   label_trigger: claude
+                  # The action default is 'true'. A mention on a fork PR must not check out fork code
+                  # in a job that has the Claude App token.
+                  allow_fork_prs: 'false'
                   # The action denies npm commands on PRs whose author has no write access, bots included.
                   # Allow them on Renovate PRs and on the PRs Claude opened for issues:
                   # their branches live in this repository, and CI already runs `npm ci`, `lint:build`, and `dist` on them.
@@ -219,12 +222,10 @@ jobs:
                       "Bash(gh pr view:*)"
                       "Bash(gh pr diff:*)"
                       "Bash(gh pr list:*)"
-                      "Bash(gh pr edit * --add-label *)"
-                      "Bash(gh pr edit * --remove-label *)"
+                      "Bash(gh pr edit ${{ github.event.issue.number || github.event.pull_request.number }} --add-label 'help wanted')"
+                      "Bash(gh pr edit ${{ github.event.issue.number || github.event.pull_request.number }} --remove-label 'help wanted')"
                       "Bash(gh pr create:*)"
                       "Bash(gh release view:*)"
-                      "Bash(gh api repos/*/pulls/*/comments*)"
-                      "Bash(gh api repos/*/pulls/*/reviews*)"
                       "WebFetch(domain:github.com)"
                       "WebFetch(domain:raw.githubusercontent.com)"
                       "WebFetch(domain:www.npmjs.com)"

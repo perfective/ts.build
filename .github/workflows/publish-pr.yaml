@@ -316,10 +316,12 @@ jobs:
                          titled with a short imperative sentence (for example, `Fix the v${{ env.VERSION }} changelog`).
                          Do not rewrite or replace the earlier commits. Commit nothing when nothing needs a fix.
                       6. When no Publish PR is open, open it as in step 8 for a new branch.
-                         Otherwise, update its body when the changelog section changed
-                         (`gh pr edit <number> --body-file <file>`),
-                         and comment on it (`gh pr comment <number> --body-file <file>`):
-                         what you changed, with the full commit SHA, and any **NEEDS HUMAN** items.
+                         Otherwise, update its body when the changelog section changed: write the body
+                         to `/tmp/publish-pr-body.md`, and run exactly
+                         `gh pr edit ${{ needs.prepare.outputs.pr }} --body-file /tmp/publish-pr-body.md`.
+                         Then comment on it: write the comment to `/tmp/publish-pr-comment.md`, and run exactly
+                         `gh pr comment ${{ needs.prepare.outputs.pr }} --body-file /tmp/publish-pr-comment.md`.
+                         The comment says what you changed, with the full commit SHA, and any **NEEDS HUMAN** items.
                          End the comment with the italic line `*Written by Claude*`.
                          Do not write `@claude` in the PR body or in a comment: that starts another run.
 
@@ -351,8 +353,8 @@ jobs:
                       "Bash(gh run list:*)"
                       "Bash(gh run view:*)"
                       "Bash(gh pr create:*)"
-                      "Bash(gh pr edit * --body-file *)"
-                      "Bash(gh pr comment * --body-file *)"
+                      "Bash(gh pr edit ${{ needs.prepare.outputs.pr }} --body-file /tmp/publish-pr-body.md)"
+                      "Bash(gh pr comment ${{ needs.prepare.outputs.pr }} --body-file /tmp/publish-pr-comment.md)"
                       --disallowedTools
                       "mcp__github_file_ops__delete_files"
                       "Bash(npm install:*)"
