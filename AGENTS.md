@@ -209,14 +209,31 @@ Release steps:
     Then the maintainer signs and pushes the tag with `git tag -s vX.Y.Z` and `git push origin vX.Y.Z`.
 4.  The [Publish](.github/workflows/publish.yaml) workflow runs when a `v*` tag is pushed.
     - The tag must be annotated and verified by GitHub.
+      Its signer key must be in the `RELEASE_SIGNING_KEYS` repository variable,
+      one key on each line: `SHA256:...` for an SSH key, or the fingerprint of a GPG key.
+      GitHub verifies a signature from the registered key of any user, so `verified` alone does not name the signer.
+    - The job verifies the signature again and reads the key from that check, not from the signature header:
+      `ssh-keygen -Y check-novalidate` for SSH, and the `VALIDSIG` status of `gpg --verify` for GPG.
+      The issuer fingerprint in a GPG signature is only a hint, and an unhashed one is not signed.
+      For GPG, the `RELEASE_SIGNING_GPG_KEYS` repository variable has the armored public keys.
+      The fingerprint of the signing subkey or of its primary key must be in `RELEASE_SIGNING_KEYS`.
+      gpg must report `GOODSIG`, and no bad, expired, or revoked signature.
+    - The signed tag object must have the name of the pushed tag and point to the commit of the run.
+      Thus, a rerun of `verify` fails if the tag now points to a different commit.
+      A rerun of only the failed `npm` job reuses `verify` and `build`, and publishes the artifact of the verified commit.
     - The tag commit must be on `main` or on `vX.Y.x`.
     - The tag version must be the same as the version in `package.json`.
       The version must have a changelog section.
-    - The job runs `npm run lint:build` and `npm run dist`.
-      Then it publishes `./dist` with provenance through GitHub OIDC.
+    - The `build` job runs `npm ci`, `npm run lint:build`, and `npm run dist`, and uploads `dist/` as an artifact.
+      The artifact is kept for 30 days, the longest wait for an environment approval.
+      It has no `id-token` permission, because the build runs the code of the dev dependencies.
+    - The `npm` job runs in the `npm` environment.
+      It only downloads the artifact, checks its name and version, rejects a `publishConfig`, and publishes it
+      with provenance through GitHub OIDC and `--ignore-scripts`.
+      It does not check out or install the repository.
     - The job skips versions that are already on npm.
-    - Do not change the filename `publish.yaml`.
-      npm trusted publishing uses this filename.
+    - Do not change the filename `publish.yaml` or the environment name `npm`.
+      npm trusted publishing uses them.
 5.  The maintainer makes the GitHub Release manually.
 
 npm dist-tags:
