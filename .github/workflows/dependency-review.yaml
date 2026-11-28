@@ -9,8 +9,13 @@ jobs:
         # Renovate PRs only, and only when Renovate pushed (opened, rebased, or recreated the branch),
         # so the follow-up commits pushed by Claude do not start another review.
         # A maintainer can rerun the review with the `claude-review` label.
+        # GitHub Actions updates (the `renovate/github-actions-` branches of the `github-actions` rule in renovate.json)
+        # never run here, the label included: `pull_request` runs the PR version of this workflow,
+        # so the new action code would run with a write token, `id-token: write`, and the Claude secret.
+        # The branch name is set when the PR opens; the label comes in a later event.
         if: >-
             github.event.pull_request.user.login == 'renovate[bot]'
+            && !startsWith(github.event.pull_request.head.ref, 'renovate/github-actions-')
             && (github.event.action == 'labeled'
                 && github.event.label.name == 'claude-review'
                 || github.event.action != 'labeled'
