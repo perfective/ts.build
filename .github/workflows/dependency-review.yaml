@@ -36,6 +36,10 @@ jobs:
             issues: write # Update the tracking comment and labels
             id-token: write # Claude GitHub App token (its pushes trigger CI, unlike GITHUB_TOKEN)
             actions: read # Read the CI results of the PR
+        env:
+            # npm runs no lifecycle scripts, also in the npm commands that Claude runs:
+            # the job has write tokens, and only the optional macOS `fsevents` has an install script.
+            npm_config_ignore_scripts: 'true'
 
         steps:
             - name: Checkout the PR branch
@@ -43,6 +47,9 @@ jobs:
               with:
                   ref: ${{ github.event.pull_request.head.ref }}
                   fetch-depth: 0
+                  # Keep the job token out of `.git/config`, so install scripts cannot read it there.
+                  # The Claude action sets its own git credentials when it starts, after the install.
+                  persist-credentials: false
 
             - name: Setup Node.js
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -56,7 +63,7 @@ jobs:
             - name: Install dependencies
               id: install
               run: |
-                  if npm ci || npm install; then
+                  if npm ci --ignore-scripts || npm install --ignore-scripts; then
                       echo "note=The dependencies are installed." >> "${GITHUB_OUTPUT}"
                       echo "failed=false" >> "${GITHUB_OUTPUT}"
                   else

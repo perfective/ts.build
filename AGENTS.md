@@ -188,6 +188,11 @@ Release steps:
 1.  The maintainer opens a `Release @perfective/build vX.Y.Z` issue.
     When the issue is ready, the maintainer adds the `claude` label.
 2.  The [Publish PR](.github/workflows/publish-pr.yaml) workflow updates the release files.
+    - It runs `npm update --before` with the date of 3 days ago,
+      so the lockfile gets no version that is newer than the Renovate release age.
+      Renovate merges security updates without that wait, so `--before` can lower a locked version.
+      Thus, the step fails when a version at a lockfile path goes down,
+      or when a dependency of a package resolves to a lower version than before (for example, after a dedupe).
     - It opens a PR from the `publish-vX.Y.Z` branch.
       The PR has a signed Publish commit.
       When the release issue is open, the PR body has `Closes #N`.
@@ -224,7 +229,8 @@ Release steps:
     - The tag commit must be on `main` or on `vX.Y.x`.
     - The tag version must be the same as the version in `package.json`.
       The version must have a changelog section.
-    - The `build` job runs `npm ci`, `npm run lint:build`, and `npm run dist`, and uploads `dist/` as an artifact.
+    - The `build` job runs `npm ci --ignore-scripts`, `npm run lint:build`, and `npm run dist`.
+      It uploads `dist/` as an artifact.
       The artifact is kept for 30 days, the longest wait for an environment approval.
       It has no `id-token` permission, because the build runs the code of the dev dependencies.
     - The `npm` job runs in the `npm` environment.
@@ -345,7 +351,17 @@ These PRs have a `renovate/github-actions-` branch.
 Dependency Review skips them, so the maintainer reviews them.
 On GitHub Actions, Claude Code removes `CLAUDE_CODE_OAUTH_TOKEN` from the commands that Claude runs,
 for example `npm install`.
-`GH_TOKEN` and `GITHUB_TOKEN` stay in those commands, so an install script can read the GitHub App token.
+`GH_TOKEN` and `GITHUB_TOKEN` stay in those commands, so an install script could read the GitHub App token.
+Thus, the workflows install without lifecycle scripts and without stored git credentials:
+
+- Each `npm ci`, `npm install`, and `npm update` in a workflow has `--ignore-scripts`.
+  Only the optional macOS `fsevents` package has an install script.
+- The Claude, Dependency Review, Cursor Fix, and Publish PR jobs also set `npm_config_ignore_scripts: 'true'`,
+  so the npm commands that Claude runs do not run scripts either.
+- Each checkout sets `persist-credentials: false`, so the job token is not in `.git/config` during the install.
+  The Claude action sets its own git credentials when it starts, after the install.
+- Do not add a lifecycle script (for example, `prepare` or `postinstall`) that the build needs.
+
 Do not set `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` in the Claude jobs:
 `0` turns the scrub off, and `1` turns on a stricter sandbox that these jobs are not set up for.
 

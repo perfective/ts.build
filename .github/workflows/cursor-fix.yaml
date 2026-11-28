@@ -163,6 +163,10 @@ jobs:
             issues: write # The round marker and the help wanted label
             id-token: write # Claude GitHub App token (its pushes trigger CI and the next Cursor review)
             actions: read # Read the CI results of the PR
+        env:
+            # npm runs no lifecycle scripts, also in the npm commands that Claude runs:
+            # the job has write tokens, and only the optional macOS `fsevents` has an install script.
+            npm_config_ignore_scripts: 'true'
 
         steps:
             - name: Checkout the PR branch
@@ -199,7 +203,7 @@ jobs:
               id: install
               if: steps.head.outputs.current == 'true'
               run: |
-                  if npm ci || npm install; then
+                  if npm ci --ignore-scripts || npm install --ignore-scripts; then
                       echo "note=The dependencies are installed." >> "${GITHUB_OUTPUT}"
                   else
                       echo "::warning::npm could not install the dependencies. Claude reports the error."

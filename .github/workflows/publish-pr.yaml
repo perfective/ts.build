@@ -161,6 +161,9 @@ jobs:
             VERSION: ${{ needs.prepare.outputs.version }}
             ISSUE: ${{ needs.prepare.outputs.issue }}
             RESUME: ${{ needs.prepare.outputs.resume }}
+            # npm runs no lifecycle scripts: the job has write tokens,
+            # and only the optional macOS `fsevents` has an install script.
+            npm_config_ignore_scripts: 'true'
 
         steps:
             # All history and tags: the changelog covers the commits since the last tag.
@@ -171,6 +174,9 @@ jobs:
               with:
                   ref: ${{ needs.prepare.outputs.resume == 'true' && needs.prepare.outputs.branch || '' }}
                   fetch-depth: 0
+                  # Keep the job token out of `.git/config`, so install scripts cannot read it there.
+                  # The Claude action sets its own git credentials when it starts, after the install.
+                  persist-credentials: false
 
             - name: Setup Node.js
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -178,17 +184,88 @@ jobs:
                   node-version: '26.13.1'
 
             - name: Install dependencies
-              run: npm ci
+              run: npm ci --ignore-scripts
 
             # The mechanical part of the Publish commit; Claude writes the changelog, READMEs, and roadmap.
             # An existing branch already has the version, unless it stopped before the Publish commit.
+            # `--before` keeps the release age of Renovate (`security:minimumReleaseAgeNpm`, 3 days):
+            # `npm update` does not resolve a version that was published in the last 3 days.
+            # Renovate merges security updates without that wait, so `--before` can lower a locked version.
+            # Thus, the step fails when a version at a path goes down,
+            # or when a dependency of a package resolves to a lower version (for example, after a dedupe).
             - name: Bump the version and update the lockfile
               id: bump
               run: |
                   set -euo pipefail
                   if [ "$(jq -r .version package.json)" != "${VERSION}" ]; then
                       npm version "${VERSION}" --no-git-tag-version
-                      npm update
+                      before="$(date -u -d '3 days ago' '+%Y-%m-%dT%H:%M:%SZ')"
+                      cp package-lock.json "${RUNNER_TEMP}/package-lock.before.json"
+                      npm update --ignore-scripts --before "${before}"
+                      node - "${RUNNER_TEMP}/package-lock.before.json" package-lock.json <<'JS'
+                          const fs = require('node:fs');
+                          const [before, after] = process.argv.slice(2)
+                              .map((file) => JSON.parse(fs.readFileSync(file, 'utf8')).packages ?? {});
+                          const parse = (version) => {
+                              const match = /^(\d+)\.(\d+)\.(\d+)(?:-([^+]+))?/u.exec(version ?? '');
+                              return match && { core: match.slice(1, 4).map(Number), pre: match[4] ? match[4].split('.') : [] };
+                          };
+                          const compareId = (a, b) => {
+                              const [x, y] = [/^\d+$/u.test(a), /^\d+$/u.test(b)];
+                              if (x && y) return Number(a) - Number(b);
+                              if (x || y) return x ? -1 : 1;
+                              return a < b ? -1 : Number(a > b);
+                          };
+                          // Semantic Versioning precedence: the core numbers, then a prerelease is lower than its release.
+                          const compare = (a, b) => {
+                              for (let i = 0; i < 3; i++) if (a.core[i] !== b.core[i]) return a.core[i] - b.core[i];
+                              if (a.pre.length === 0 || b.pre.length === 0) return b.pre.length - a.pre.length;
+                              for (let i = 0; i < Math.min(a.pre.length, b.pre.length); i++) {
+                                  const order = compareId(a.pre[i], b.pre[i]);
+                                  if (order !== 0) return order;
+                              }
+                              return a.pre.length - b.pre.length;
+                          };
+                          // The path that Node.js loads `name` from for the package at `path`: the nearest `node_modules` up the tree.
+                          const resolve = (packages, path, name) => {
+                              for (let from = path; ; ) {
+                                  const candidate = `${from === '' ? '' : `${from}/`}node_modules/${name}`;
+                                  if (packages[candidate]) return candidate;
+                                  if (from === '') return undefined;
+                                  const parent = from.lastIndexOf('/node_modules/');
+                                  from = parent === -1 ? '' : from.slice(0, parent);
+                              }
+                          };
+                          const lower = (from, to) => {
+                              const [a, b] = [parse(from), parse(to)];
+                              return a && b && compare(b, a) < 0;
+                          };
+                          const downgrades = new Set();
+                          for (const [path, entry] of Object.entries(after)) {
+                              if (path !== '' && lower(before[path]?.version, entry.version)) {
+                                  downgrades.add(`${path}: ${before[path].version} -> ${entry.version}`);
+                              }
+                              // Each dependency that a package had before and still has must not resolve to a lower version.
+                              // A dependency that the new version dropped is not loaded, and a new one did not resolve before.
+                              if (before[path] === undefined) continue;
+                              const fields = ['dependencies', 'optionalDependencies', 'peerDependencies'];
+                              if (path === '') fields.push('devDependencies');
+                              const listed = (record) => new Set(fields.flatMap((field) => Object.keys(record[field] ?? {})));
+                              const previous = listed(before[path]);
+                              const names = [...listed(entry)].filter((name) => previous.has(name));
+                              for (const name of names) {
+                                  const [was, is] = [resolve(before, path, name), resolve(after, path, name)];
+                                  if (was && is && lower(before[was].version, after[is].version)) {
+                                      downgrades.add(`${path || 'the root'} -> ${name}: ${before[was].version} -> ${after[is].version}`);
+                                  }
+                              }
+                          }
+                          if (downgrades.size > 0) {
+                              console.log(`::error::npm update --before lowered ${downgrades.size} locked versions:`);
+                              for (const line of downgrades) console.log(line);
+                              process.exit(1);
+                          }
+                  JS
                       echo "bumped=true" >> "${GITHUB_OUTPUT}"
                   else
                       echo "bumped=false" >> "${GITHUB_OUTPUT}"
@@ -210,6 +287,8 @@ jobs:
                       echo "text<<${delimiter}"
                       if [ "${BUMPED}" = "true" ]; then
                           echo "The workflow set \`package.json\` to \`${VERSION}\` and ran \`npm update\`."
+                          echo "\`npm update\` skipped the versions that were published in the last 3 days,"
+                          echo "and it lowered no version that the lockfile already had."
                           echo "Leave those edits as they are, and include both files in the commit."
                       else
                           echo "\`package.json\` on this branch is already \`${VERSION}\`."
