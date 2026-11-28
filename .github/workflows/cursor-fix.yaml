@@ -505,6 +505,7 @@ jobs:
                       exit 1
                   fi
                   human=false
+                  failed=false
                   while IFS= read -r reply; do
                       id="$(jq -r '.comment_id' <<< "${reply}")"
                       body="$(jq -r '.body' <<< "${reply}")"
@@ -520,11 +521,20 @@ jobs:
                       if grep -q 'NEEDS HUMAN' <<< "${body}"; then
                           human=true
                       fi
-                      gh api -X POST "/repos/${GH_REPO}/pulls/${PR}/comments/${id}/replies" \
-                          -f body="$(printf '%s\n\n%s' "${body}" '*Written by Claude (Cursor Fix workflow)*')" > /dev/null
+                      # A failed post must not skip the report below: the round marker still runs after this step.
+                      if ! gh api -X POST "/repos/${GH_REPO}/pulls/${PR}/comments/${id}/replies" \
+                          -f body="$(printf '%s\n\n%s' "${body}" '*Written by Claude (Cursor Fix workflow)*')" > /dev/null; then
+                          echo "::warning::Could not post the reply to comment ${id}."
+                          failed=true
+                          continue
+                      fi
                       posted="${posted} ${id}"
                   done < <(jq -c '.[]' "${replies}")
                   report
+                  if [ "${failed}" = "true" ]; then
+                      echo "::error::Some replies could not be posted. The report lists their findings."
+                      exit 1
+                  fi
                   if [ "${human}" = "true" ]; then
                       gh pr edit "${PR}" --add-label "help wanted"
                   fi
