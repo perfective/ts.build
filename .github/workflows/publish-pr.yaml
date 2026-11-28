@@ -284,7 +284,8 @@ jobs:
                          with only the changed files among `package.json`, `package-lock.json`, `CHANGELOG.adoc`,
                          `README.adoc`, `README.md`, and `ROADMAP.adoc`. Nothing else goes into this commit.
                       8. Open the PR:
-                         `gh pr create --base main --head ${{ env.CLAUDE_BRANCH }} --title "Publish v${{ env.VERSION }}" --body-file <file>`.
+                         `gh pr create --base main --head ${{ env.CLAUDE_BRANCH }} --title "Publish v${{ env.VERSION }}" --body-file publish-pr-body.md`.
+                         Write the body to `publish-pr-body.md` in the root of the checkout first, and do not commit it.
                          The body has `Closes #<release issue>` when a release issue is open,
                          the new changelog section,
                          a summary of the README changes,
@@ -316,10 +317,12 @@ jobs:
                          titled with a short imperative sentence (for example, `Fix the v${{ env.VERSION }} changelog`).
                          Do not rewrite or replace the earlier commits. Commit nothing when nothing needs a fix.
                       6. When no Publish PR is open, open it as in step 8 for a new branch.
-                         Otherwise, update its body when the changelog section changed
-                         (`gh pr edit <number> --body-file <file>`),
-                         and comment on it (`gh pr comment <number> --body-file <file>`):
-                         what you changed, with the full commit SHA, and any **NEEDS HUMAN** items.
+                         Otherwise, update its body when the changelog section changed: write the body
+                         to `publish-pr-body.md` in the root of the checkout (do not commit it), and run exactly
+                         `gh pr edit ${{ needs.prepare.outputs.pr }} --body-file publish-pr-body.md`.
+                         Then comment on it: write the comment to `publish-pr-comment.md` (do not commit it), and run exactly
+                         `gh pr comment ${{ needs.prepare.outputs.pr }} --body-file publish-pr-comment.md`.
+                         The comment says what you changed, with the full commit SHA, and any **NEEDS HUMAN** items.
                          End the comment with the italic line `*Written by Claude*`.
                          Do not write `@claude` in the PR body or in a comment: that starts another run.
 
@@ -331,8 +334,8 @@ jobs:
                       --model claude-opus-5-5
                       --allowedTools
                       "Read"
-                      "Edit"
-                      "Write"
+                      "Edit(./**)"
+                      "Write(./**)"
                       "Glob"
                       "Grep"
                       "mcp__github_file_ops__commit_files"
@@ -351,8 +354,8 @@ jobs:
                       "Bash(gh run list:*)"
                       "Bash(gh run view:*)"
                       "Bash(gh pr create:*)"
-                      "Bash(gh pr edit * --body-file *)"
-                      "Bash(gh pr comment * --body-file *)"
+                      "Bash(gh pr edit ${{ needs.prepare.outputs.pr }} --body-file publish-pr-body.md)"
+                      "Bash(gh pr comment ${{ needs.prepare.outputs.pr }} --body-file publish-pr-comment.md)"
                       --disallowedTools
                       "mcp__github_file_ops__delete_files"
                       "Bash(npm install:*)"

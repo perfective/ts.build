@@ -78,7 +78,7 @@ For each version, read the release notes from these sources:
   To find the repository, run `npm view <package> repository.url`.
 - The changelog of the package.
 - The compare view or the commits, if the notes do not give sufficient information:
-  `gh api repos/<owner>/<repo>/compare/<from>...<to>`.
+  `https://github.com/<owner>/<repo>/compare/<from>...<to>` (with WebFetch).
 
 Record these items, with the URLs:
 
@@ -259,3 +259,5 @@ In CI, these rules also apply:
     - **Changes pushed**, with the commit hash and the squash-merge title.
     - **NEEDS HUMAN**, with the items to decide.
 - Add or remove the `help wanted` label as "The `help wanted` label" in `references/decisions.md` tells you.
+  Use exactly `gh pr edit <number> --add-label 'help wanted'` or `gh pr edit <number> --remove-label 'help wanted'`:
+  the workflows allow only these commands.

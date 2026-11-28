@@ -277,6 +277,10 @@ Use the `help wanted` label for a pending maintainer decision.
 - Claude adds `help wanted` for **NEEDS HUMAN** items.
   Claude removes it when a later run clears the items.
   Claude follows the label rules in the skill.
+  The workflows allow only these exact commands, with single quotes:
+  `gh pr edit <number> --add-label 'help wanted'` and `gh pr edit <number> --remove-label 'help wanted'`,
+  where `<number>` is the PR of the run.
+  On a PR that Claude opens in the same run, add the label with `gh pr create --label 'help wanted'`.
 
 Keep the `help wanted` label that Renovate added for a major, peer, or TypeScript update
 until the maintainer accepts the update.
@@ -324,6 +328,27 @@ for example `npm install`.
 `GH_TOKEN` and `GITHUB_TOKEN` stay in those commands, so an install script can read the GitHub App token.
 Do not set `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` in the Claude jobs:
 `0` turns the scrub off, and `1` turns on a stricter sandbox that these jobs are not set up for.
+
+The Claude tool rules (`--allowedTools`) give Claude read-only GitHub commands
+and the few writes that its task needs:
+
+- In a rule, `*` also matches spaces.
+  Thus, `gh pr edit * --add-label *` also allows other flags, and `gh api repos/*/...*` allows any method and endpoint.
+- Do not allow `gh api`.
+  Claude reads PRs, comments, and reviews with `gh pr view --json comments,reviews`,
+  releases with `gh release view`, and compare views with WebFetch.
+- Write an exact rule, without `*`, when an argument must stay fixed:
+  a label, the PR number (from the event), or a file path.
+  For example, `"Bash(gh pr edit ${{ github.event.pull_request.number }} --add-label 'help wanted')"`.
+- When Claude must write to GitHub in another way, Claude writes a file,
+  and a later workflow step checks the file and does the write
+  (for example, the replies of [Cursor Fix](#cursor-fix)).
+- Scope file edits to the checkout: `"Edit(./**)"` and `"Write(./**)"`.
+  A bare `Edit` or `Write` rule allows writes anywhere on the runner,
+  including files that later steps with a write token use.
+  Thus, a file that Claude writes for a later step is in the checkout, and Claude does not commit it.
+- `claude.yaml` sets `allow_fork_prs: 'false'`, as `publish-pr.yaml` does.
+  Its `resolve` job skips a fork PR, because the action stops on a fork without a `conclusion` output.
 
 [Continuous Integration](.github/workflows/ci.yaml) runs on PRs and on pushes to `main` or `vX.Y.x`.
 It runs `npm ci`, `npm run lint:build`, and `npm run dist` on Node.js `22.x`, `24.x`, and `26.x`.
@@ -441,8 +466,18 @@ It does not push to other PRs.
   It reports the remaining findings as **NEEDS HUMAN** and adds `help wanted`.
 - Each round adds a `cursor-fix-round` marker comment, and a report adds a `cursor-fix-report` marker.
   The markers count the rounds, and they stop a second run for the same head.
-- The job resolves a thread only when Claude's last reply has the full SHA of the fix commit
-  or of the reviewed commit, and does not have **NEEDS HUMAN**.
+- Claude has no `gh api` rule.
+  A step before Claude saves the open findings of the reviewed commit to a file.
+  Claude writes its replies to `cursor-replies.json` in the checkout.
+  A step after Claude posts each reply as `github-actions[bot]`, only on a thread of a saved finding,
+  and adds `help wanted` when a reply has **NEEDS HUMAN**.
+  Claude can change the findings file, so the later steps take the finding IDs from the output of the save step.
+  A finding without a posted reply goes into a **NEEDS HUMAN** comment.
+  The round marker is posted only when each finding has a reply or is in that comment,
+  so a failed post leaves the head open for another run.
+  It skips a reply that mentions `@claude` or `@cursoragent`.
+- The job resolves a thread only when the last reply, which the workflow posted for Claude,
+  has the full SHA of the fix commit or of the reviewed commit, and does not have **NEEDS HUMAN**.
 
 #### Disagreements with a review
 
