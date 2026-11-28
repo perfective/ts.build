@@ -1,0 +1,250 @@
+name: Issue Queue
+on:
+    # The `issues` event runs this file from `main`. The job never checks out or runs repository code:
+    # it only reads issues and adds a label through the API.
+    issues:
+        types: [labeled, closed]
+
+permissions: {}
+
+jobs:
+    # A parent issue with the `claude-queue` label is a queue: its sub-issues run one at a time, in their order.
+    # The maintainer adds `claude-queue` to start the queue, and removes it to pause the queue.
+    # The start records the ordered sub-issues as the approved queue in a comment from `github-actions[bot]`.
+    # Later closes use only that list, and stop when the sub-issues change:
+    # a user with triage access can add sub-issues, and must not choose the work that the maintainer's token starts.
+    # When a sub-issue closes (usually when its PR is merged), the job adds the `claude` label
+    # to the next open sub-issue. That label starts the Claude workflow, which opens the next PR from `main`.
+    # Labels that `GITHUB_TOKEN` adds do not start workflows. So the job adds the label
+    # with the maintainer's fine-grained token, and the maintainer is the sender of the `labeled` event.
+    next:
+        name: Start the next sub-issue
+        if: >-
+            github.event.action == 'closed'
+            || github.event.action == 'labeled' && github.event.label.name == 'claude-queue'
+        # One job at a time for all queues: a job that waits sees the label that the job before it added.
+        concurrency:
+            group: issue-queue
+            cancel-in-progress: false
+            queue: max
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        # The token is an environment secret. The environment allows only `main`.
+        environment: issue-queue
+        permissions:
+            issues: write # Read the issues and comment on the parent issue
+
+        steps:
+            # Only numbers, the repository, and the sender login go into the script, through `env`.
+            # Issue titles are read only inside `jq`, to find release issues. Issue bodies are never used.
+            - name: Label the next open sub-issue
+              working-directory: ${{ runner.temp }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PAT: ${{ secrets.ISSUE_QUEUE_TOKEN }}
+                  REPO: ${{ github.repository }}
+                  ACTION: ${{ github.event.action }}
+                  NUMBER: ${{ github.event.issue.number }}
+                  SENDER: ${{ github.event.sender.login }}
+              run: |
+                  set -euo pipefail
+                  stop() {
+                      echo "$1"
+                      exit 0
+                  }
+                  if [ -z "${PAT}" ]; then
+                      echo "::error::The issue-queue environment has no ISSUE_QUEUE_TOKEN secret."
+                      exit 1
+                  fi
+
+                  # Only a user with write access can start or move a queue.
+                  # An issue author can close their own issue, and that must not start Claude.
+                  # A 404 means that the sender is not a user of this repository. Any other error fails the job,
+                  # so a queue does not stall behind a green run.
+                  if ! permission="$(gh api "/repos/${REPO}/collaborators/${SENDER}/permission" \
+                      --jq '.permission' 2> error.txt)"; then
+                      grep -q 'HTTP 404' error.txt || {
+                          cat error.txt
+                          echo "::error::Could not read the permission of ${SENDER}."
+                          exit 1
+                      }
+                      permission=none
+                  fi
+                  case "${permission}" in
+                      admin | maintain | write) ;;
+                      *) stop "${SENDER} has no write access, so the queue does not move." ;;
+                  esac
+
+                  query='
+                      query($owner: String!, $name: String!, $number: Int!) {
+                          repository(owner: $owner, name: $name) {
+                              issue(number: $number) {
+                                  number
+                                  state
+                                  labels(first: 100) { nodes { name } }
+                                  parent { number repository { nameWithOwner } }
+                                  subIssues(first: 100) {
+                                      nodes {
+                                          number
+                                          state
+                                          title
+                                          repository { nameWithOwner }
+                                          labels(first: 100) { nodes { name } }
+                                      }
+                                  }
+                              }
+                          }
+                      }'
+                  issue() {
+                      gh api graphql -f query="${query}" -f owner="${REPO%%/*}" -f name="${REPO#*/}" -F number="$1" \
+                          --jq '.data.repository.issue'
+                  }
+                  # The label events and the sub-issue changes of the parent, oldest first.
+                  timeline='
+                      query($owner: String!, $name: String!, $number: Int!) {
+                          repository(owner: $owner, name: $name) {
+                              issue(number: $number) {
+                                  timelineItems(last: 100, itemTypes: [LABELED_EVENT, SUB_ISSUE_ADDED_EVENT, SUB_ISSUE_REMOVED_EVENT]) {
+                                      nodes {
+                                          __typename
+                                          ... on LabeledEvent { createdAt actor { login } label { name } }
+                                          ... on SubIssueAddedEvent { createdAt }
+                                          ... on SubIssueRemovedEvent { createdAt }
+                                      }
+                                  }
+                              }
+                          }
+                      }'
+                  # GitHub Actions compares strings without case in `contains` and `startsWith`,
+                  # so the Claude and Publish PR workflows match labels and titles without case. Do the same here.
+                  labeled='any(.labels.nodes[]; .name | ascii_downcase == $label)'
+
+                  # A parent or a sub-issue can be in another repository of the same owner,
+                  # and its number is not a number in this repository.
+                  if [ "${ACTION}" = "labeled" ]; then
+                      parent="${NUMBER}"
+                  else
+                      parent="$(issue "${NUMBER}" | jq -r --arg repo "${REPO}" \
+                          '.parent | select(.repository.nameWithOwner == $repo) | .number')"
+                      [ -n "${parent}" ] || stop "Issue #${NUMBER} has no parent issue in ${REPO}."
+                  fi
+                  queue="$(issue "${parent}")"
+                  jq -e --arg label claude-queue ".state == \"OPEN\" and ${labeled}" <<< "${queue}" \
+                      > /dev/null || stop "Issue #${parent} is not an open issue with the claude-queue label."
+
+                  # Read the comments first: a failed read fails the job, instead of a second notice.
+                  # Only the comments of this workflow (`github-actions[bot]`) count. Anyone can quote a marker.
+                  comments="$(gh api --paginate "/repos/${REPO}/issues/${parent}/comments?per_page=100" \
+                      | jq -s '[add // [] | .[] | select(.user.login == "github-actions[bot]")]')"
+                  posted() {
+                      jq -e --arg marker "$1" 'any(.[]; .body | contains($marker))' <<< "${comments}" > /dev/null
+                  }
+                  comment() {
+                      body="$(printf '%s\n\n%s\n\n%s' "$1" "*Posted by GitHub Actions (Issue Queue workflow)*" "$2")"
+                      gh api -X POST "/repos/${REPO}/issues/${parent}/comments" -f body="${body}" --jq '.id'
+                  }
+                  # Post a notice once: skip it when a comment of this workflow already has the marker.
+                  notice() {
+                      posted "$2" || comment "$1" "$2" > /dev/null
+                  }
+
+                  current="$(jq -r '[.subIssues.nodes[].number] | join(" ")' <<< "${queue}")"
+                  # Check on every event, before the numbers are trusted: a sub-issue in another repository
+                  # can have the number of an approved sub-issue, and the label would go to the local issue.
+                  jq -e --arg repo "${REPO}" 'all(.subIssues.nodes[]; .repository.nameWithOwner == $repo)' \
+                      <<< "${queue}" > /dev/null || {
+                      notice "Some sub-issues are in another repository, so the queue does not move.
+                  Remove them from the sub-issues, and then remove the claude-queue label and add it again." \
+                          "<!-- issue-queue-foreign: ${current} -->"
+                      stop "Issue #${parent} has sub-issues in another repository."
+                  }
+                  approved_list() {
+                      jq -r --argjson id "$1" '.[] | select(.id == $id) | .body
+                          | capture("<!-- issue-queue-approved: (?<list>[0-9 ]+) -->").list' <<< "${comments}"
+                  }
+                  if [ "${ACTION}" = "labeled" ]; then
+                      [ -n "${current}" ] || stop "Issue #${parent} has no sub-issues."
+                      # The label event identifies the writer, but the job reads the sub-issues later.
+                      # The writer approves only the sub-issues that existed when the label was added:
+                      # stop when a sub-issue was added or removed at or after that time.
+                      events="$(gh api graphql -f query="${timeline}" -f owner="${REPO%%/*}" -f name="${REPO#*/}" \
+                          -F number="${parent}" --jq '.data.repository.issue.timelineItems.nodes')"
+                      labeled_at="$(jq -r --arg sender "${SENDER}" '[.[] | select(.__typename == "LabeledEvent"
+                          and (.label.name | ascii_downcase) == "claude-queue" and .actor.login == $sender)
+                          | .createdAt] | last // ""' <<< "${events}")"
+                      if [ -z "${labeled_at}" ]; then
+                          echo "::error::The timeline of #${parent} has no claude-queue label event by ${SENDER}."
+                          exit 1
+                      fi
+                      if jq -e --arg at "${labeled_at}" 'any(.[]; .__typename != "LabeledEvent" and .createdAt >= $at)' \
+                          <<< "${events}" > /dev/null; then
+                          notice "The sub-issues changed after the claude-queue label was added, so the queue does not start.
+                  To approve the current list, remove the claude-queue label and add it again." \
+                              "<!-- issue-queue-unconfirmed: ${labeled_at} -->"
+                          stop "The sub-issues of #${parent} changed after the label event."
+                      fi
+                      # A retry of the same label event reuses the approval that it already posted.
+                      approval="$(jq -r --arg at "${labeled_at}" '[.[] | select(.created_at >= $at
+                          and (.body | test("<!-- issue-queue-approved: [0-9 ]+ -->")))] | first | .id // ""' \
+                          <<< "${comments}")"
+                      if [ -z "${approval}" ]; then
+                          list="$(sed 's/\([0-9][0-9]*\)/#\1/g; s/ /, /g' <<< "${current}")"
+                          approval="$(comment "${SENDER} started the queue: ${list}." \
+                              "<!-- issue-queue-approved: ${current} -->")"
+                          approved="${current}"
+                      else
+                          approved="$(approved_list "${approval}")"
+                      fi
+                  else
+                      approval="$(jq -r '[.[] | select(.body | test("<!-- issue-queue-approved: [0-9 ]+ -->"))]
+                          | last | .id // ""' <<< "${comments}")"
+                      [ -n "${approval}" ] || stop "Issue #${parent} has no approved queue."
+                      approved="$(approved_list "${approval}")"
+                  fi
+                  if [ "${approved}" != "${current}" ]; then
+                      notice "The sub-issues changed after the queue started, so the queue stops.
+                  To approve the new list, remove the claude-queue label and add it again." \
+                          "<!-- issue-queue-changed: ${approval} -->"
+                      stop "The sub-issues of #${parent} changed after the approval."
+                  fi
+
+                  read -r -a order <<< "${approved}"
+                  total="${#order[@]}"
+                  state() {
+                      jq -r --argjson n "$1" --arg label claude ".subIssues.nodes[] | select(.number == \$n)
+                          | if .state != \"OPEN\" then \"closed\" elif ${labeled} then \"running\" else \"open\" end" \
+                          <<< "${queue}"
+                  }
+                  # One sub-issue at a time: check the whole list for a running sub-issue first.
+                  # If the run that added its label did not post the start notice, post it now.
+                  position=0
+                  for n in "${order[@]}"; do
+                      position=$((position + 1))
+                      if [ "$(state "${n}")" = "running" ]; then
+                          notice "Started #${n} (${position} of ${total})." "<!-- issue-queue-started: ${n} -->"
+                          stop "Sub-issue #${n} of #${parent} is still open with the claude label."
+                      fi
+                  done
+                  position=0
+                  for n in "${order[@]}"; do
+                      position=$((position + 1))
+                      [ "$(state "${n}")" = "open" ] || continue
+                      # The Claude workflow skips release issues, and Publish PR takes a `Release @perfective/build v`
+                      # title with the `claude` label as the maintainer's approval of a release.
+                      if jq -e --argjson n "${n}" --arg label release ".subIssues.nodes[] | select(.number == \$n)
+                          | ${labeled} or (.title | ascii_downcase | startswith(\"release @perfective/build v\"))" \
+                          <<< "${queue}" > /dev/null; then
+                          notice "#${n} is a release issue, so the queue does not start it.
+                  Close it or remove it from the sub-issues, and then remove the claude-queue label and add it again." \
+                              "<!-- issue-queue-release: ${n} -->"
+                          stop "Sub-issue #${n} of #${parent} is a release issue."
+                      fi
+                      GH_TOKEN="${PAT}" gh api -X POST "/repos/${REPO}/issues/${n}/labels" \
+                          -f 'labels[]=claude' > /dev/null
+                      comment "Started #${n} (${position} of ${total})." "<!-- issue-queue-started: ${n} -->" > /dev/null
+                      stop "Added the claude label to #${n} (${position} of ${total} in #${parent})."
+                  done
+
+                  notice "All ${total} sub-issues are closed. The tasks that remain on this issue are for the maintainer." \
+                      "<!-- issue-queue-done: ${approval} -->"
+                  echo "The queue of #${parent} is done."
