@@ -20,6 +20,7 @@ jobs:
             contents: read
         outputs:
             sha: ${{ steps.tag.outputs.sha }}
+            name: ${{ steps.tag.outputs.name }}
             version: ${{ steps.tag.outputs.version }}
             dist_tag: ${{ steps.tag.outputs.dist_tag }}
 
@@ -33,6 +34,8 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
                   REPO: ${{ github.repository }}
                   TAG: ${{ github.ref_name }}
+                  # One key on each line: `SHA256:...` for an SSH key, or the fingerprint of a GPG key.
+                  SIGNING_KEYS: ${{ vars.RELEASE_SIGNING_KEYS }}
               run: |
                   set -euo pipefail
                   if [[ ! "${TAG}" =~ ^v([0-9]+)\.([0-9]+)\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
@@ -53,6 +56,38 @@ jobs:
                   if [ "$(jq -r '.verification.verified' <<<"${tag}")" != "true" ]; then
                       echo "::error::GitHub does not verify the signature of ${TAG}:" \
                           "$(jq -r '.verification.reason' <<<"${tag}")."
+                      exit 1
+                  fi
+                  # GitHub verifies a signature from the key of any user, so the signer key must also be pinned.
+                  # An SSH signature is checked against its own public key, and GitHub has checked a GPG signature.
+                  if [ -z "${SIGNING_KEYS//[[:space:]]/}" ]; then
+                      echo "::error::The RELEASE_SIGNING_KEYS repository variable is empty."
+                      exit 1
+                  fi
+                  jq -r '.verification.signature' <<<"${tag}" > tag.sig
+                  jq -j '.verification.payload' <<<"${tag}" > tag.payload
+                  case "$(head -n 1 tag.sig)" in
+                      '-----BEGIN SSH SIGNATURE-----')
+                          key="$(ssh-keygen -Y check-novalidate -n git -s tag.sig < tag.payload 2>/dev/null \
+                              | sed -n 's/^Good "git" signature with .* key \(SHA256:[^ ]*\)$/\1/p' || true)"
+                          ;;
+                      '-----BEGIN PGP SIGNATURE-----')
+                          GNUPGHOME="$(mktemp -d)"
+                          export GNUPGHOME
+                          key="$(gpg --batch --list-packets tag.sig 2>/dev/null \
+                              | sed -n 's/.*(issuer fpr v[0-9] \([0-9A-Fa-f]*\)).*/\1/p' | head -n 1 || true)"
+                          key="${key^^}"
+                          ;;
+                      *)
+                          key=
+                          ;;
+                  esac
+                  if [ -z "${key}" ]; then
+                      echo "::error::The signer key of ${TAG} is not found."
+                      exit 1
+                  fi
+                  if ! tr -d ' \t\r' <<<"${SIGNING_KEYS}" | grep -Fxq -- "${key}"; then
+                      echo "::error::${TAG} is signed with ${key}, which is not in RELEASE_SIGNING_KEYS."
                       exit 1
                   fi
                   if [ "$(jq -r '.object.type' <<<"${tag}")" != "commit" ]; then
@@ -83,6 +118,7 @@ jobs:
 
                   package="$(gh api "repos/${REPO}/contents/package.json?ref=${sha}" \
                       -H 'Accept: application/vnd.github.raw')"
+                  name="$(jq -r '.name' <<<"${package}")"
                   if [ "$(jq -r '.version' <<<"${package}")" != "${version}" ]; then
                       echo "::error::package.json has version $(jq -r '.version' <<<"${package}"), not ${version}."
                       exit 1
@@ -93,6 +129,7 @@ jobs:
                   fi
                   {
                       echo "sha=${sha}"
+                      echo "name=${name}"
                       echo "version=${version}"
                       echo "dist_tag=${dist_tag}"
                   } >> "${GITHUB_OUTPUT}"
@@ -121,13 +158,13 @@ jobs:
                       exit 1
                   fi
 
-    npm:
-        name: Publish NPM package
+    # The build runs the code of the dev dependencies, so it has no `id-token` permission.
+    build:
+        name: Build the package
         needs: verify
         runs-on: ubuntu-latest
         timeout-minutes: 15
         permissions:
-            id-token: write # Required for OIDC (npm trusted publishing and provenance)
             contents: read
 
         steps:
@@ -140,7 +177,6 @@ jobs:
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version: '26.13.1'
-                  registry-url: 'https://registry.npmjs.org'
 
             - name: Install dependencies
               run: npm ci
@@ -151,16 +187,54 @@ jobs:
             - name: Build package
               run: npm run dist
 
+            - name: Upload the package
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: dist
+                  path: dist/
+                  if-no-files-found: error
+                  retention-days: 1
+
+    # Only this job can get an OIDC token.
+    # It does not check out or install the repository, and it runs no package scripts.
+    npm:
+        name: Publish NPM package
+        needs: [verify, build]
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        environment: npm
+        permissions:
+            id-token: write # Required for OIDC (npm trusted publishing and provenance)
+
+        steps:
+            - name: Download the package
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: dist
+                  path: ${{ runner.temp }}/dist
+
+            - name: Setup Node.js
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: '26.13.1'
+                  registry-url: 'https://registry.npmjs.org'
+
             # A rerun skips the version npm already has.
             - name: Publish package
+              working-directory: ${{ runner.temp }}
               env:
+                  NAME: ${{ needs.verify.outputs.name }}
                   VERSION: ${{ needs.verify.outputs.version }}
                   DIST_TAG: ${{ needs.verify.outputs.dist_tag }}
               run: |
                   set -euo pipefail
-                  name="$(jq -r '.name' package.json)"
-                  if npm view "${name}@${VERSION}" version > /dev/null 2>&1; then
-                      echo "::notice::${name}@${VERSION} is already on npm."
+                  if [ "$(jq -r '.name' dist/package.json)" != "${NAME}" ] \
+                      || [ "$(jq -r '.version' dist/package.json)" != "${VERSION}" ]; then
+                      echo "::error::dist/package.json is not ${NAME}@${VERSION}."
+                      exit 1
+                  fi
+                  if npm view "${NAME}@${VERSION}" version > /dev/null 2>&1; then
+                      echo "::notice::${NAME}@${VERSION} is already on npm."
                       exit 0
                   fi
-                  npm publish --provenance --tag "${DIST_TAG}" ./dist
+                  npm publish --provenance --ignore-scripts --tag "${DIST_TAG}" ./dist
