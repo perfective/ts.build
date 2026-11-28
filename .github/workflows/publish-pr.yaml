@@ -161,6 +161,9 @@ jobs:
             VERSION: ${{ needs.prepare.outputs.version }}
             ISSUE: ${{ needs.prepare.outputs.issue }}
             RESUME: ${{ needs.prepare.outputs.resume }}
+            # npm runs no lifecycle scripts: the job has write tokens,
+            # and only the optional macOS `fsevents` has an install script.
+            npm_config_ignore_scripts: 'true'
 
         steps:
             # All history and tags: the changelog covers the commits since the last tag.
@@ -171,6 +174,9 @@ jobs:
               with:
                   ref: ${{ needs.prepare.outputs.resume == 'true' && needs.prepare.outputs.branch || '' }}
                   fetch-depth: 0
+                  # Keep the job token out of `.git/config`, so install scripts cannot read it there.
+                  # The Claude action sets its own git credentials when it starts, after the install.
+                  persist-credentials: false
 
             - name: Setup Node.js
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -178,17 +184,20 @@ jobs:
                   node-version: '26.13.1'
 
             - name: Install dependencies
-              run: npm ci
+              run: npm ci --ignore-scripts
 
             # The mechanical part of the Publish commit; Claude writes the changelog, READMEs, and roadmap.
             # An existing branch already has the version, unless it stopped before the Publish commit.
+            # `--before` keeps the release age of Renovate (`security:minimumReleaseAgeNpm`, 3 days):
+            # `npm update` does not resolve a version that was published in the last 3 days.
             - name: Bump the version and update the lockfile
               id: bump
               run: |
                   set -euo pipefail
                   if [ "$(jq -r .version package.json)" != "${VERSION}" ]; then
                       npm version "${VERSION}" --no-git-tag-version
-                      npm update
+                      before="$(date -u -d '3 days ago' '+%Y-%m-%dT%H:%M:%SZ')"
+                      npm update --ignore-scripts --before "${before}"
                       echo "bumped=true" >> "${GITHUB_OUTPUT}"
                   else
                       echo "bumped=false" >> "${GITHUB_OUTPUT}"
@@ -210,6 +219,7 @@ jobs:
                       echo "text<<${delimiter}"
                       if [ "${BUMPED}" = "true" ]; then
                           echo "The workflow set \`package.json\` to \`${VERSION}\` and ran \`npm update\`."
+                          echo "\`npm update\` skipped the versions that were published in the last 3 days."
                           echo "Leave those edits as they are, and include both files in the commit."
                       else
                           echo "\`package.json\` on this branch is already \`${VERSION}\`."
