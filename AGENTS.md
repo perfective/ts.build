@@ -476,7 +476,7 @@ pick the next sub-issue, let Claude open its PR, land the PR, and pick the next 
 - The job does nothing while an open sub-issue already has the `claude` label.
   To run a sub-issue again, remove its `claude` label and add it again.
 - A sub-issue closed as not planned also moves the queue.
-- The queue does not start while a sub-issue is in another repository.
+- The queue does not start or move while a sub-issue is in another repository.
   Issue numbers are local to a repository.
 - The queue stops at a release issue (the `release` label, or a `Release @perfective/build v` title).
   The Claude workflow skips it, and Publish PR takes the `claude` label as the approval of a release.

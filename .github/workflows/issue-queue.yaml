@@ -130,13 +130,16 @@ jobs:
                   }
 
                   current="$(jq -r '[.subIssues.nodes[].number] | join(" ")' <<< "${queue}")"
+                  # Check on every event, before the numbers are trusted: a sub-issue in another repository
+                  # can have the number of an approved sub-issue, and the label would go to the local issue.
+                  jq -e --arg repo "${REPO}" 'all(.subIssues.nodes[]; .repository.nameWithOwner == $repo)' \
+                      <<< "${queue}" > /dev/null || {
+                      notice "Some sub-issues are in another repository, so the queue does not move.
+                  Remove them from the sub-issues, and then remove the claude-queue label and add it again." \
+                          "<!-- issue-queue-foreign: ${current} -->"
+                      stop "Issue #${parent} has sub-issues in another repository."
+                  }
                   if [ "${ACTION}" = "labeled" ]; then
-                      jq -e --arg repo "${REPO}" 'all(.subIssues.nodes[]; .repository.nameWithOwner == $repo)' \
-                          <<< "${queue}" > /dev/null || {
-                          notice "Some sub-issues are in another repository, so the queue does not start." \
-                              "<!-- issue-queue-foreign: ${current} -->"
-                          stop "Issue #${parent} has sub-issues in another repository."
-                      }
                       [ -n "${current}" ] || stop "Issue #${parent} has no sub-issues."
                       # The maintainer added the label: record the sub-issues as the approved queue.
                       list="$(sed 's/\([0-9][0-9]*\)/#\1/g; s/ /, /g' <<< "${current}")"
