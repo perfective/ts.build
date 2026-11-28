@@ -25,7 +25,6 @@
         "experimentalDecorators": true,
         "forceConsistentCasingInFileNames": true,
         "importHelpers": false,
-        "importsNotUsedAsValues": "remove",
         "isolatedModules": false,
         "incremental": true,
         "listEmittedFiles": false,
