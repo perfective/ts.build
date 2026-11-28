@@ -245,11 +245,12 @@ jobs:
                               if (path !== '' && lower(before[path]?.version, entry.version)) {
                                   downgrades.add(`${path}: ${before[path].version} -> ${entry.version}`);
                               }
-                              // Each dependency of a package that stays must not resolve to a lower version than before.
+                              // Each dependency that a package still has must not resolve to a lower version than before.
+                              // The names come from the updated entry: a dependency that the new version dropped is not loaded.
                               if (before[path] === undefined) continue;
                               const names = new Set(
                                   ['dependencies', 'optionalDependencies', 'peerDependencies', ...(path === '' ? ['devDependencies'] : [])]
-                                      .flatMap((field) => Object.keys(before[path][field] ?? {})),
+                                      .flatMap((field) => Object.keys(entry[field] ?? {})),
                               );
                               for (const name of names) {
                                   const [was, is] = [resolve(before, path, name), resolve(after, path, name)];
