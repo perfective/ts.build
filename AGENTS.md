@@ -343,7 +343,12 @@ and the few writes that its task needs:
 - When Claude must write to GitHub in another way, Claude writes a file,
   and a later workflow step checks the file and does the write
   (for example, the replies of [Cursor Fix](#cursor-fix)).
+- Scope file edits to the checkout: `"Edit(./**)"` and `"Write(./**)"`.
+  A bare `Edit` or `Write` rule allows writes anywhere on the runner,
+  including files that later steps with a write token use.
+  Thus, a file that Claude writes for a later step is in the checkout, and Claude does not commit it.
 - `claude.yaml` sets `allow_fork_prs: 'false'`, as `publish-pr.yaml` does.
+  Its `resolve` job skips a fork PR, because the action stops on a fork without a `conclusion` output.
 
 [Continuous Integration](.github/workflows/ci.yaml) runs on PRs and on pushes to `main` or `vX.Y.x`.
 It runs `npm ci`, `npm run lint:build`, and `npm run dist` on Node.js `22.x`, `24.x`, and `26.x`.
@@ -463,7 +468,7 @@ It does not push to other PRs.
   The markers count the rounds, and they stop a second run for the same head.
 - Claude has no `gh api` rule.
   A step before Claude saves the open findings of the reviewed commit to a file.
-  Claude writes its replies to `/tmp/cursor-replies.json`.
+  Claude writes its replies to `cursor-replies.json` in the checkout.
   A step after Claude posts each reply as `github-actions[bot]`, only on a thread of a saved finding,
   and adds `help wanted` when a reply has **NEEDS HUMAN**.
   Claude can change the findings file, so the later steps take the finding IDs from the output of the save step.

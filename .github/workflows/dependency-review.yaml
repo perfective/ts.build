@@ -108,7 +108,7 @@ jobs:
                       ${{ steps.install.outputs.claude-args }}
                       --allowedTools
                       "Read"
-                      "Edit"
+                      "Edit(./**)"
                       "Glob"
                       "Grep"
                       "Bash(npm install)"

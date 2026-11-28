@@ -262,6 +262,7 @@ jobs:
                                           comments(first: 50) {
                                               nodes { databaseId author { login } body originalCommit { oid } }
                                           }
+                                          lastComment: comments(last: 1) { nodes { body } }
                                       }
                                   }
                               }
@@ -271,7 +272,7 @@ jobs:
                           | select(.isResolved | not)
                           | select(.comments.nodes[0] | who == "cursor")
                           | select(.comments.nodes[0].originalCommit.oid == $sha)
-                          | select(.comments.nodes[-1].body | contains("NEEDS HUMAN") | not)
+                          | select(.lastComment.nodes[0].body | contains("NEEDS HUMAN") | not)
                           | {comment_id: .comments.nodes[0].databaseId, path, line,
                               finding: .comments.nodes[0].body,
                               replies: [.comments.nodes[1:][] | {author: who, body}]}]' \
@@ -365,7 +366,7 @@ jobs:
                       with `mcp__github_file_ops__commit_files`, in the commit style of `AGENTS.md`.
                       If there is nothing to fix, do not commit.
                       After the commit is on the branch, write one reply for each finding
-                      to `/tmp/cursor-replies.json`, as a JSON array of `{"comment_id": <number>, "body": "<text>"}`.
+                      to `cursor-replies.json` in the root of the checkout (do not commit it), as a JSON array of `{"comment_id": <number>, "body": "<text>"}`.
                       A reply to a fixed finding has the full commit SHA.
                       The workflow posts the replies after this step, and it resolves the fixed threads.
                       You cannot post comments, replies, or labels yourself.
@@ -380,8 +381,8 @@ jobs:
                       ${{ steps.install.outputs.claude-args }}
                       --allowedTools
                       "Read"
-                      "Edit"
-                      "Write"
+                      "Edit(./**)"
+                      "Write(./**)"
                       "Glob"
                       "Grep"
                       "mcp__github_file_ops__commit_files"
@@ -471,15 +472,36 @@ jobs:
                   IDS: ${{ steps.findings.outputs.ids }}
               run: |
                   set -euo pipefail
-                  replies=/tmp/cursor-replies.json
+                  replies="${GITHUB_WORKSPACE}/cursor-replies.json"
+                  # Report every saved finding without an accepted reply, so it does not stay open unnoticed:
+                  # the round marker stops another fix run for this head.
+                  report() {
+                      local missing=() id
+                      for id in ${IDS}; do
+                          [[ " ${posted} " == *" ${id} "* ]] || missing+=("${id}")
+                      done
+                      [ "${#missing[@]}" -gt 0 ] || return 0
+                      links=
+                      for id in "${missing[@]}"; do
+                          links="${links}- https://github.com/${GH_REPO}/pull/${PR}#discussion_r${id}"$'\n'
+                      done
+                      gh pr comment "${PR}" --body "$(printf '%s\n\n%s\n\n%s\n' \
+                          "**NEEDS HUMAN**: Claude left no reply on these Cursor findings:" \
+                          "${links}" \
+                          '*Posted by GitHub Actions (Cursor Fix workflow)*')"
+                      gh pr edit "${PR}" --add-label "help wanted"
+                  }
+                  posted=
                   if [ ! -f "${replies}" ]; then
                       echo "Claude wrote no replies."
+                      report
                       exit 0
                   fi
                   if ! jq -e 'type == "array" and all(.[]; (.comment_id | type) == "number"
                       and (.body | type) == "string" and (.body | length) > 0 and (.body | length) <= 10000)' \
                       "${replies}" > /dev/null; then
                       echo "::error::${replies} is not an array of {comment_id, body} replies."
+                      report
                       exit 1
                   fi
                   human=false
@@ -500,7 +522,9 @@ jobs:
                       fi
                       gh api -X POST "/repos/${GH_REPO}/pulls/${PR}/comments/${id}/replies" \
                           -f body="$(printf '%s\n\n%s' "${body}" '*Written by Claude (Cursor Fix workflow)*')" > /dev/null
+                      posted="${posted} ${id}"
                   done < <(jq -c '.[]' "${replies}")
+                  report
                   if [ "${human}" = "true" ]; then
                       gh pr edit "${PR}" --add-label "help wanted"
                   fi
